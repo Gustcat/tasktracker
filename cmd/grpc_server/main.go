@@ -2,46 +2,54 @@ package main
 
 import (
 	"context"
-	"fmt"
+	userAPI "github.com/Gustcat/auth/internal/api"
+	"github.com/Gustcat/auth/internal/config"
+	"github.com/Gustcat/auth/internal/config/env"
+	userRepository "github.com/Gustcat/auth/internal/repository/user"
+	userService "github.com/Gustcat/auth/internal/service/user"
 	desc "github.com/Gustcat/auth/pkg/user_v1"
-	"github.com/brianvoe/gofakeit"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"
 	"net"
 )
 
-const Port = 5000
-
-type server struct {
-	desc.UnimplementedUserV1Server
-}
-
-func (s *server) Get(ctx context.Context, req *desc.GetRequest) (*desc.GetResponse, error) {
-	log.Printf("Note id: %d", req.GetId())
-
-	return &desc.GetResponse{
-		Id: req.GetId(),
-		Info: &desc.UserInfo{
-			Name:  gofakeit.Name(),
-			Email: gofakeit.Email(),
-			Role:  desc.Role(gofakeit.Number(0, 1)),
-		},
-		CreatedAt: timestamppb.New(gofakeit.Date()),
-		UpdatedAt: timestamppb.New(gofakeit.Date()),
-	}, nil
-}
-
 func main() {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", Port))
+	ctx := context.Background()
+
+	err := config.Load("local.env")
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
+
+	grpcConfig, err := env.NewGRPCConfig()
+	if err != nil {
+		log.Fatalf("failed to get grpc config: %v", err)
+	}
+
+	lis, err := net.Listen("tcp", grpcConfig.Address())
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
+	pgConfig, err := env.NewPGConfig()
+	if err != nil {
+		log.Fatalf("failed to get pg config: %v", err)
+	}
+
+	pool, err := pgxpool.Connect(ctx, pgConfig.DSN())
+	if err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
+	defer pool.Close()
+
+	userRepo := userRepository.NewRepository(pool)
+	userServ := userService.NewServ(userRepo)
+
 	s := grpc.NewServer()
 	reflection.Register(s)
-	desc.RegisterUserV1Server(s, &server{})
+	desc.RegisterUserV1Server(s, userAPI.NewImplementation(userServ))
 
 	log.Printf("server listening at %v", lis.Addr())
 

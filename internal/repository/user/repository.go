@@ -83,11 +83,11 @@ func (r *repo) Update(ctx context.Context, id int64, name string, email string) 
 		Where(sq.Eq{"id": id})
 
 	if name != "" {
-		builder = builder.Where(sq.Eq{nameColumn: name})
+		builder = builder.Set(nameColumn, name)
 	}
 
 	if email != "" {
-		builder = builder.Where(sq.Eq{emailColumn: email})
+		builder = builder.Set(emailColumn, email)
 
 	}
 

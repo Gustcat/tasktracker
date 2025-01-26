@@ -4,12 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/Gustcat/auth/internal/client/db"
 	"github.com/Gustcat/auth/internal/model"
 	"github.com/Gustcat/auth/internal/repository"
 	"github.com/Gustcat/auth/internal/repository/user/converter"
 	modelRepo "github.com/Gustcat/auth/internal/repository/user/model"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"time"
 )
 
@@ -26,10 +26,10 @@ const (
 )
 
 type repo struct {
-	db *pgxpool.Pool
+	db db.Client
 }
 
-func NewRepository(db *pgxpool.Pool) repository.UserRepository {
+func NewRepository(db db.Client) repository.UserRepository {
 	return &repo{db: db}
 }
 
@@ -45,8 +45,13 @@ func (r *repo) Create(ctx context.Context, info *model.UserInfo, pwd string) (in
 		return 0, err
 	}
 
+	q := db.Query{
+		Name:     "user_repository.Create",
+		QueryRaw: query,
+	}
+
 	var id int64
-	err = r.db.QueryRow(ctx, query, args...).Scan(&id)
+	err = r.db.DB().QueryRowContext(ctx, q, args...).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -66,8 +71,13 @@ func (r *repo) Get(ctx context.Context, id int64) (int64, *model.UserInfo, time.
 		return 0, nil, time.Time{}, sql.NullTime{Time: time.Time{}, Valid: false}, err
 	}
 
+	q := db.Query{
+		Name:     "user_repository.Get",
+		QueryRaw: query,
+	}
+
 	var user modelRepo.User
-	err = r.db.QueryRow(ctx, query, args...).Scan(&user.ID, &user.Info.Name, &user.Info.Email, &user.Info.Role, &user.CreatedAt, &user.UpdatedAt, &user.Password)
+	err = r.db.DB().ScanOneContext(ctx, &user, q, args...)
 	if err != nil {
 		return 0, nil, time.Time{}, sql.NullTime{Time: time.Time{}, Valid: false}, err
 	}
@@ -96,7 +106,12 @@ func (r *repo) Update(ctx context.Context, id int64, name string, email string) 
 		return err
 	}
 
-	ct, err := r.db.Exec(ctx, query, args...)
+	q := db.Query{
+		Name:     "user_repository.Update",
+		QueryRaw: query,
+	}
+
+	ct, err := r.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
 		return err
 	}
@@ -118,7 +133,12 @@ func (r *repo) Delete(ctx context.Context, id int64) error {
 		return err
 	}
 
-	ct, err := r.db.Exec(ctx, query, args...)
+	q := db.Query{
+		Name:     "user_repository.Update",
+		QueryRaw: query,
+	}
+
+	ct, err := r.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
 		return err
 	}

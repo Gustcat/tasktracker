@@ -61,7 +61,7 @@ func (app *App) initConfig(_ context.Context) error {
 }
 
 func (app *App) initServiceProvider(_ context.Context) error {
-	app.serviceProvider = NewServiceProvider()
+	app.serviceProvider = newServiceProvider()
 	return nil
 }
 

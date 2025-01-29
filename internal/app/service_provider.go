@@ -27,7 +27,7 @@ type serviceProvider struct {
 	userImpl       *userAPI.Implementation
 }
 
-func NewServiceProvider() *serviceProvider { return &serviceProvider{} }
+func newServiceProvider() *serviceProvider { return &serviceProvider{} }
 
 func (sp *serviceProvider) PGConfig() config.PGConfig {
 	if sp.pgConfig == nil {
@@ -57,7 +57,7 @@ func (sp *serviceProvider) DBClient(ctx context.Context) db.Client {
 	if sp.dbClient == nil {
 		client, err := pg.New(ctx, sp.PGConfig().DSN())
 		if err != nil {
-			log.Fatalf("failed to connect to pgxpool: %s", err.Error())
+			log.Fatalf("failed to connect to db: %s", err.Error())
 		}
 
 		err = client.DB().Ping(ctx)

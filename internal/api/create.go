@@ -16,7 +16,7 @@ func (i *Implementation) Create(ctx context.Context, req *desc.CreateRequest) (*
 
 	id, err := i.userService.Create(ctx, converter.ToUserInfoFromDesc(req.GetInfo()), req.GetPassword())
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, err
 	}
 
 	log.Printf("Created user with id %d", id)

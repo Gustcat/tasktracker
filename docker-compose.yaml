@@ -46,6 +46,8 @@ services:
     restart: on-failure
     ports:
       - "50051:50051"
+      - "8080:8080"
+      - "8090:8090"
     env_file: local.env
     depends_on:
       - pg-local

@@ -3,58 +3,34 @@ package tests
 import (
 	"context"
 	"fmt"
-	user "github.com/Gustcat/auth/internal/api"
-	"github.com/Gustcat/auth/internal/model"
+	"github.com/Gustcat/auth/internal/api/user"
 	"github.com/Gustcat/auth/internal/service"
 	servicemocks "github.com/Gustcat/auth/internal/service/mocks"
 	desc "github.com/Gustcat/auth/pkg/user_v1"
 	"github.com/brianvoe/gofakeit"
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"testing"
 )
 
-func TestGet(t *testing.T) {
+func TestDelete(t *testing.T) {
 	t.Parallel()
 
 	type userServiceMockFunc func(mc *minimock.Controller) service.UserService
 
 	type args struct {
 		ctx context.Context
-		req *desc.GetRequest
+		req *desc.DeleteRequest
 	}
 
 	var (
 		ctx = context.Background()
 
-		id        = gofakeit.Int64()
-		createdAt = gofakeit.Date()
-		updatedAt = gofakeit.Date()
+		id = gofakeit.Int64()
 
-		name  = gofakeit.Name()
-		email = gofakeit.Email()
-		role  = int32(gofakeit.Number(0, 2))
-
-		userinfo = &model.UserInfo{
-			Name:  name,
-			Email: email,
-			Role:  role,
-		}
-
-		req = &desc.GetRequest{
+		req = &desc.DeleteRequest{
 			Id: id,
-		}
-
-		res = &desc.GetResponse{
-			Id: id,
-			Info: &desc.UserInfo{
-				Name:  name,
-				Email: email,
-				Role:  desc.Role(role),
-			},
-			CreatedAt: timestamppb.New(createdAt),
-			UpdatedAt: timestamppb.New(updatedAt),
 		}
 
 		serviceErr = fmt.Errorf("service error")
@@ -63,7 +39,7 @@ func TestGet(t *testing.T) {
 	tests := []struct {
 		name            string
 		args            args
-		expected        *desc.GetResponse
+		expected        *emptypb.Empty
 		err             error
 		userServiceMock userServiceMockFunc
 	}{
@@ -73,15 +49,14 @@ func TestGet(t *testing.T) {
 				ctx: ctx,
 				req: req,
 			},
-			expected: res,
+			expected: &emptypb.Empty{},
 			err:      nil,
 			userServiceMock: func(mc *minimock.Controller) service.UserService {
 				mock := servicemocks.NewUserServiceMock(mc)
-				mock.GetMock.Expect(ctx, id).Return(id, userinfo, timestamppb.New(createdAt), timestamppb.New(updatedAt), nil)
+				mock.DeleteMock.Expect(ctx, id).Return(nil)
 				return mock
 			},
-		},
-		{
+		}, {
 			name: "service error case",
 			args: args{
 				ctx: ctx,
@@ -91,7 +66,7 @@ func TestGet(t *testing.T) {
 			err:      serviceErr,
 			userServiceMock: func(mc *minimock.Controller) service.UserService {
 				mock := servicemocks.NewUserServiceMock(mc)
-				mock.GetMock.Expect(ctx, id).Return(0, nil, &timestamppb.Timestamp{}, &timestamppb.Timestamp{}, serviceErr)
+				mock.DeleteMock.Expect(ctx, id).Return(serviceErr)
 				return mock
 			},
 		},
@@ -102,11 +77,12 @@ func TestGet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			mc := minimock.NewController(t)
+
 			userServiceMock := tt.userServiceMock(mc)
 			api := user.NewImplementation(userServiceMock)
-			resp, err := api.Get(tt.args.ctx, tt.args.req)
-			require.Equal(t, tt.err, err)
+			resp, err := api.Delete(tt.args.ctx, tt.args.req)
 			require.Equal(t, tt.expected, resp)
+			require.Equal(t, tt.err, err)
 		})
 	}
 }

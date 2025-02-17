@@ -1,4 +1,4 @@
-package api
+package user
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 
 func (i *Implementation) Create(ctx context.Context, req *desc.CreateRequest) (*desc.CreateResponse, error) {
 	if req.GetPassword() != req.GetPasswordConfirm() {
-		return nil, status.Error(codes.InvalidArgument, "password does not match")
+		return nil, status.Errorf(codes.InvalidArgument, "password and password_confirm do not match")
 	}
 
 	id, err := i.userService.Create(ctx, converter.ToUserInfoFromDesc(req.GetInfo()), req.GetPassword())

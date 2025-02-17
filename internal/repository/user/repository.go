@@ -10,6 +10,7 @@ import (
 	"github.com/Gustcat/auth/internal/repository/user/converter"
 	modelRepo "github.com/Gustcat/auth/internal/repository/user/model"
 	sq "github.com/Masterminds/squirrel"
+	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
@@ -34,10 +35,15 @@ func NewRepository(db db.Client) repository.UserRepository {
 }
 
 func (r *repo) Create(ctx context.Context, info *model.UserInfo, pwd string) (int64, error) {
+	hashpwd, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)
+	if err != nil {
+		return 0, err
+	}
+
 	builder := sq.Insert(tableName).
 		PlaceholderFormat(sq.Dollar).
 		Columns(nameColumn, emailColumn, roleColumn, passwordColumn).
-		Values(info.Name, info.Email, info.Role, pwd).
+		Values(info.Name, info.Email, info.Role, hashpwd).
 		Suffix("RETURNING id")
 
 	query, args, err := builder.ToSql()
@@ -148,4 +154,33 @@ func (r *repo) Delete(ctx context.Context, id int64) error {
 	}
 
 	return nil
+}
+
+func (r *repo) Login(ctx context.Context, username string) (string, *model.UserInfo, error) {
+	builder := sq.Select(roleColumn, passwordColumn).
+		From(tableName).
+		PlaceholderFormat(sq.Dollar).
+		Where(sq.Eq{nameColumn: username}).
+		Limit(1)
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return "", nil, err
+	}
+
+	q := db.Query{
+		Name:     "user_repository.Login",
+		QueryRaw: query,
+	}
+
+	userinfo := &model.UserInfo{
+		Name: username,
+	}
+	var hashPassword string
+	err = r.db.DB().QueryRowContext(ctx, q, args...).Scan(&userinfo.Role, &hashPassword)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return hashPassword, userinfo, nil
 }

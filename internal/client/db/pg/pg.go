@@ -53,7 +53,7 @@ func (p *pg) ExecContext(ctx context.Context, q db.Query, args ...interface{}) (
 	logQuery(ctx, q, args...)
 
 	tx, ok := ctx.Value(TxKey).(pgx.Tx)
-	if !ok {
+	if ok {
 		return tx.Exec(ctx, q.QueryRaw, args...)
 	}
 
@@ -64,7 +64,7 @@ func (p *pg) QueryContext(ctx context.Context, q db.Query, args ...interface{}) 
 	logQuery(ctx, q, args...)
 
 	tx, ok := ctx.Value(TxKey).(pgx.Tx)
-	if !ok {
+	if ok {
 		return tx.Query(ctx, q.QueryRaw, args...)
 	}
 
@@ -75,7 +75,9 @@ func (p *pg) QueryRowContext(ctx context.Context, q db.Query, args ...interface{
 	logQuery(ctx, q, args...)
 
 	tx, ok := ctx.Value(TxKey).(pgx.Tx)
-	if !ok {
+	if ok {
+		if tx == nil {
+		}
 		return tx.QueryRow(ctx, q.QueryRaw, args...)
 	}
 

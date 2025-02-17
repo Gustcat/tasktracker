@@ -3,38 +3,55 @@ package tests
 import (
 	"context"
 	"fmt"
-	user "github.com/Gustcat/auth/internal/api"
+	"github.com/Gustcat/auth/internal/api/user"
+	"github.com/Gustcat/auth/internal/model"
 	"github.com/Gustcat/auth/internal/service"
 	servicemocks "github.com/Gustcat/auth/internal/service/mocks"
 	desc "github.com/Gustcat/auth/pkg/user_v1"
 	"github.com/brianvoe/gofakeit"
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"testing"
 )
 
-func TestUpdate(t *testing.T) {
+func TestCreate(t *testing.T) {
 	t.Parallel()
 
 	type userServiceMockFunc func(mc *minimock.Controller) service.UserService
 
 	type args struct {
 		ctx context.Context
-		req *desc.UpdateRequest
+		req *desc.CreateRequest
 	}
 
 	var (
 		ctx = context.Background()
 
-		id    = gofakeit.Int64()
+		id  = gofakeit.Int64()
+		pwd = gofakeit.Password(true, true, true, true, true, 10)
+
 		name  = gofakeit.Name()
 		email = gofakeit.Email()
+		role  = int32(gofakeit.Number(0, 2))
 
-		req = &desc.UpdateRequest{
-			Id:    id,
+		userinfo = &model.UserInfo{
 			Name:  name,
 			Email: email,
+			Role:  role,
+		}
+
+		req = &desc.CreateRequest{
+			Info: &desc.UserInfo{
+				Name:  name,
+				Email: email,
+				Role:  desc.Role(role),
+			},
+			Password:        pwd,
+			PasswordConfirm: pwd,
+		}
+
+		res = &desc.CreateResponse{
+			Id: id,
 		}
 
 		serviceErr = fmt.Errorf("service error")
@@ -43,35 +60,35 @@ func TestUpdate(t *testing.T) {
 	tests := []struct {
 		name            string
 		args            args
-		expected        *emptypb.Empty
+		expected        *desc.CreateResponse
 		err             error
 		userServiceMock userServiceMockFunc
 	}{
 		{
 			name: "success case",
 			args: args{
-				ctx: ctx,
 				req: req,
+				ctx: ctx,
 			},
-			expected: &emptypb.Empty{},
+			expected: res,
 			err:      nil,
 			userServiceMock: func(mc *minimock.Controller) service.UserService {
 				mock := servicemocks.NewUserServiceMock(mc)
-				mock.UpdateMock.Expect(ctx, id, name, email).Return(nil)
+				mock.CreateMock.Expect(ctx, userinfo, pwd).Return(id, nil)
 				return mock
 			},
 		},
 		{
 			name: "service error case",
 			args: args{
-				ctx: ctx,
 				req: req,
+				ctx: ctx,
 			},
 			expected: nil,
 			err:      serviceErr,
 			userServiceMock: func(mc *minimock.Controller) service.UserService {
 				mock := servicemocks.NewUserServiceMock(mc)
-				mock.UpdateMock.Expect(ctx, id, name, email).Return(serviceErr)
+				mock.CreateMock.Expect(ctx, userinfo, pwd).Return(0, serviceErr)
 				return mock
 			},
 		},
@@ -82,12 +99,12 @@ func TestUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			mc := minimock.NewController(t)
-
 			userServiceMock := tt.userServiceMock(mc)
 			api := user.NewImplementation(userServiceMock)
-			resp, err := api.Update(tt.args.ctx, tt.args.req)
-			require.Equal(t, tt.expected, resp)
+
+			resp, err := api.Create(tt.args.ctx, tt.args.req)
 			require.Equal(t, tt.err, err)
+			require.Equal(t, tt.expected, resp)
 		})
 	}
 }

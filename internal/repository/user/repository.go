@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/Gustcat/auth/internal/client/db"
+	"github.com/Gustcat/auth/internal/logger"
 	"github.com/Gustcat/auth/internal/model"
 	"github.com/Gustcat/auth/internal/repository"
 	"github.com/Gustcat/auth/internal/repository/user/converter"
 	modelRepo "github.com/Gustcat/auth/internal/repository/user/model"
 	sq "github.com/Masterminds/squirrel"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"time"
 )
@@ -37,6 +39,7 @@ func NewRepository(db db.Client) repository.UserRepository {
 func (r *repo) Create(ctx context.Context, info *model.UserInfo, pwd string) (int64, error) {
 	hashpwd, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)
 	if err != nil {
+		logger.Error("Can't hash the password", zap.String("password", pwd))
 		return 0, err
 	}
 
@@ -48,6 +51,11 @@ func (r *repo) Create(ctx context.Context, info *model.UserInfo, pwd string) (in
 
 	query, args, err := builder.ToSql()
 	if err != nil {
+		logger.Error("Sql query to create user is not generated",
+			zap.String("name", info.Name),
+			zap.String("email", info.Email),
+			zap.Int32("role", info.Role),
+			zap.String("password", pwd))
 		return 0, err
 	}
 
@@ -59,6 +67,11 @@ func (r *repo) Create(ctx context.Context, info *model.UserInfo, pwd string) (in
 	var id int64
 	err = r.db.DB().QueryRowContext(ctx, q, args...).Scan(&id)
 	if err != nil {
+		logger.Error("Query to create user failed",
+			zap.String("name", info.Name),
+			zap.String("email", info.Email),
+			zap.Int32("role", info.Role),
+			zap.String("password", pwd))
 		return 0, err
 	}
 
@@ -74,6 +87,7 @@ func (r *repo) Get(ctx context.Context, id int64) (int64, *model.UserInfo, time.
 
 	query, args, err := builder.ToSql()
 	if err != nil {
+		logger.Error("Sql query to get user is not generated", zap.Int64("id", id))
 		return 0, nil, time.Time{}, sql.NullTime{Time: time.Time{}, Valid: false}, err
 	}
 
@@ -85,6 +99,7 @@ func (r *repo) Get(ctx context.Context, id int64) (int64, *model.UserInfo, time.
 	var user modelRepo.User
 	err = r.db.DB().ScanOneContext(ctx, &user, q, args...)
 	if err != nil {
+		logger.Error("Query to get user failed", zap.Int64("id", id))
 		return 0, nil, time.Time{}, sql.NullTime{Time: time.Time{}, Valid: false}, err
 	}
 
@@ -109,6 +124,10 @@ func (r *repo) Update(ctx context.Context, id int64, name string, email string) 
 
 	query, args, err := builder.ToSql()
 	if err != nil {
+		logger.Error("Sql query to update user is not generated",
+			zap.Int64("id", id),
+			zap.String("name", name),
+			zap.String("email", email))
 		return err
 	}
 
@@ -119,6 +138,10 @@ func (r *repo) Update(ctx context.Context, id int64, name string, email string) 
 
 	ct, err := r.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
+		logger.Error("Query to update user failed",
+			zap.Int64("id", id),
+			zap.String("name", name),
+			zap.String("email", email))
 		return err
 	}
 
@@ -136,6 +159,7 @@ func (r *repo) Delete(ctx context.Context, id int64) error {
 
 	query, args, err := builder.ToSql()
 	if err != nil {
+		logger.Error("Sql query to delete user is not generated", zap.Int64("id", id))
 		return err
 	}
 
@@ -146,6 +170,7 @@ func (r *repo) Delete(ctx context.Context, id int64) error {
 
 	ct, err := r.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
+		logger.Error("Query to delete user failed", zap.Int64("id", id))
 		return err
 	}
 
@@ -165,6 +190,7 @@ func (r *repo) Login(ctx context.Context, username string) (string, *model.UserI
 
 	query, args, err := builder.ToSql()
 	if err != nil {
+		logger.Error("Sql query to login user is not generated", zap.String("username", username))
 		return "", nil, err
 	}
 
@@ -179,6 +205,7 @@ func (r *repo) Login(ctx context.Context, username string) (string, *model.UserI
 	var hashPassword string
 	err = r.db.DB().QueryRowContext(ctx, q, args...).Scan(&userinfo.Role, &hashPassword)
 	if err != nil {
+		logger.Error("Query to login user failed", zap.String("username", username))
 		return "", nil, err
 	}
 

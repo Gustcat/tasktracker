@@ -5,6 +5,7 @@ import (
 	"github.com/Gustcat/auth/internal/closer"
 	"github.com/Gustcat/auth/internal/config"
 	"github.com/Gustcat/auth/internal/interceptor"
+	"github.com/Gustcat/auth/internal/logger"
 	descAccess "github.com/Gustcat/auth/pkg/access_v1"
 	descAuth "github.com/Gustcat/auth/pkg/auth_v1"
 	descUser "github.com/Gustcat/auth/pkg/user_v1"
@@ -44,6 +45,7 @@ func (app *App) initDeps(ctx context.Context) error {
 	inits := []func(context.Context) error{
 		app.initConfig,
 		app.initServiceProvider,
+		app.initLogger,
 		app.initGRPCServer,
 		app.initHTTPServer,
 		app.initSwaggerServer,
@@ -106,6 +108,11 @@ func (app *App) initConfig(_ context.Context) error {
 	return nil
 }
 
+func (app *App) initLogger(_ context.Context) error {
+	logger.Init("info")
+	return nil
+}
+
 func (app *App) initServiceProvider(_ context.Context) error {
 	app.serviceProvider = newServiceProvider()
 	return nil
@@ -114,7 +121,9 @@ func (app *App) initServiceProvider(_ context.Context) error {
 func (app *App) initGRPCServer(ctx context.Context) error {
 	app.grpcServer = grpc.NewServer(
 		grpc.Creds(insecure.NewCredentials()),
-		grpc.UnaryInterceptor(interceptor.ValidateInterceptor),
+		grpc.ChainUnaryInterceptor(
+			interceptor.LogInterceptor,
+			interceptor.ValidateInterceptor),
 	)
 
 	reflection.Register(app.grpcServer)

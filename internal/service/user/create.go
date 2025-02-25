@@ -2,14 +2,24 @@ package user
 
 import (
 	"context"
+	"github.com/Gustcat/auth/internal/logger"
 	"github.com/Gustcat/auth/internal/model"
+	"go.uber.org/zap"
 )
 
 func (s *serv) Create(ctx context.Context, info *model.UserInfo, pwd string) (int64, error) {
+	logger.Info("Creating user...",
+		zap.String("name", info.Name),
+		zap.String("email", info.Email),
+		zap.String("password", pwd),
+		zap.Int32("role", info.Role))
+
 	id, err := s.userRepository.Create(ctx, info, pwd)
 	if err != nil {
 		return 0, err
 	}
+
+	logger.Info("User created", zap.Int64("id", id))
 
 	return id, nil
 }

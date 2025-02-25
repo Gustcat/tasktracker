@@ -3,8 +3,10 @@ package access
 import (
 	"context"
 	"github.com/Gustcat/auth/internal/client/db"
+	"github.com/Gustcat/auth/internal/logger"
 	"github.com/Gustcat/auth/internal/repository"
 	sq "github.com/Masterminds/squirrel"
+	"go.uber.org/zap"
 )
 
 const (
@@ -34,6 +36,7 @@ func (r *repo) Check(ctx context.Context, role int32, endpoint string) error {
 
 	query, args, err := builder.ToSql()
 	if err != nil {
+		logger.Error("Sql query is not generated", zap.String("endpoint", endpoint), zap.Int32("role", role))
 		return err
 	}
 
@@ -44,10 +47,12 @@ func (r *repo) Check(ctx context.Context, role int32, endpoint string) error {
 
 	ct, err := r.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
+		logger.Error("Query failed", zap.String("endpoint", endpoint), zap.Int32("role", role))
 		return err
 	}
 
 	if ct.RowsAffected() == 0 {
+		logger.Info("user has no access to the endpoint", zap.String("endpoint", endpoint), zap.Int32("role", role))
 		return err
 	}
 

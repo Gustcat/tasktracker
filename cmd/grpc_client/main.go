@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	address = "localhost:5000"
-	userID  = 12
+	address = "localhost:50051"
+	userID  = 14
 )
 
 func main() {

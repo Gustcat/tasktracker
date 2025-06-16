@@ -2,9 +2,8 @@ package task
 
 import (
 	"context"
+	"github.com/Gustcat/task-server/internal/converter"
 	"github.com/Gustcat/task-server/internal/model"
-	"github.com/Gustcat/task-server/internal/repository/converter"
-
 	//"sync"
 	"time"
 	//"google.golang.org/grpc"

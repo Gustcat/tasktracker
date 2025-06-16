@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"github.com/Gustcat/task-server/internal/repository"
 	modelrepo "github.com/Gustcat/task-server/internal/repository/model"
-	"github.com/jackc/pgconn"
-
 	sq "github.com/Masterminds/squirrel"
+	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -41,8 +42,8 @@ func NewRepo(ctx context.Context, DSN string) (*Repo, error) {
 	return &Repo{db: db}, nil
 }
 
-func (p *Repo) Ping(ctx context.Context) error {
-	return p.db.Ping(ctx)
+func (r *Repo) Ping(ctx context.Context) error {
+	return r.db.Ping(ctx)
 }
 
 func (r *Repo) Close() {
@@ -72,7 +73,7 @@ func (r *Repo) Create(ctx context.Context, task *modelrepo.TaskCreateDB) (int64,
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%s: building SQL failed: %w", op, err)
 	}
 
 	var id int64
@@ -82,8 +83,40 @@ func (r *Repo) Create(ctx context.Context, task *modelrepo.TaskCreateDB) (int64,
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return 0, repository.ErrTaskExists
 		}
-		return 0, err
+		return 0, fmt.Errorf("%s: executing query failed: %w", op, err)
 	}
 
 	return id, nil
+}
+
+func (r *Repo) Get(ctx context.Context, id int64) (*modelrepo.TaskDB, error) {
+	const op = "postgres.Get"
+
+	builder := sq.Select(idColumn, titleColumn, descriptionColumn, statusColumn, authorColumn,
+		operatorColumn, dueDateColumn, completedAtColumn, createdAtColumn, updatedAtColumn).
+		From(tableName).
+		Where(sq.Eq{idColumn: id}).
+		PlaceholderFormat(sq.Dollar)
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%s: building SQL failed: %w", op, err)
+	}
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("%s: query failed: %w", op, err)
+	}
+	defer rows.Close()
+
+	var task modelrepo.TaskDB
+	err = pgxscan.ScanOne(&task, rows)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, repository.ErrTaskNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("%s: executing query failed: %w", op, err)
+	}
+
+	return &task, nil
 }

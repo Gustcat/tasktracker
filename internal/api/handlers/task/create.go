@@ -50,12 +50,13 @@ func (h *Handler) Create(ctx context.Context, log *slog.Logger) gin.HandlerFunc 
 
 		if err != nil {
 			log.Error("Failed to create task", slog.String("error", err.Error()))
-
+			c.AbortWithStatusJSON(http.StatusInternalServerError, response.Error("Failed to create task"))
+			return
 		}
 
 		log.Info("Person created", slog.Int64("id", id))
 
-		createResp := &dto.CreateResponse{ID: id}
+		createResp := &dto.IdResponse{ID: id}
 		c.JSON(http.StatusCreated, response.OK(createResp))
 
 	}

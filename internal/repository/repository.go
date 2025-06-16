@@ -13,4 +13,5 @@ var (
 
 type TaskRepository interface {
 	Create(ctx context.Context, task *modelrepo.TaskCreateDB) (int64, error)
+	Get(ctx context.Context, id int64) (*modelrepo.TaskDB, error)
 }

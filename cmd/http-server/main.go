@@ -68,7 +68,7 @@ func main() {
 		//r.GET("/", task.List(ctx, log))
 		r.GET("/:id", handler.Get(ctx, log))
 		//r.PATCH("/:id", task.Update(ctx, log))
-		//r.DELETE("/:id", task.Delete(ctx, log))
+		r.DELETE("/:id", handler.Delete(ctx, log))
 	}
 
 	srv := &http.Server{

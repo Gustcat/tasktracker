@@ -120,3 +120,28 @@ func (r *Repo) Get(ctx context.Context, id int64) (*modelrepo.TaskDB, error) {
 
 	return &task, nil
 }
+
+func (r *Repo) Delete(ctx context.Context, id int64) error {
+	const op = "postgres.Delete"
+
+	builder := sq.Delete(tableName).
+		Where(sq.Eq{idColumn: id}).
+		PlaceholderFormat(sq.Dollar)
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return fmt.Errorf("%s: building SQL failed: %w", op, err)
+	}
+
+	res, err := r.db.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("%s: executing query failed: %w", op, err)
+	}
+
+	rows := res.RowsAffected()
+	if rows == 0 {
+		return repository.ErrTaskNotFound
+	}
+
+	return nil
+}

@@ -65,7 +65,7 @@ func main() {
 	r := router.Group("/api/v1/tasks")
 	{
 		r.POST("/", handler.Create(ctx, log))
-		//r.GET("/", task.List(ctx, log))
+		r.GET("/", handler.List(ctx, log))
 		r.GET("/:id", handler.Get(ctx, log))
 		//r.PATCH("/:id", task.Update(ctx, log))
 		r.DELETE("/:id", handler.Delete(ctx, log))

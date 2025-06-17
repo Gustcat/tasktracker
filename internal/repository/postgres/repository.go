@@ -121,6 +121,31 @@ func (r *Repo) Get(ctx context.Context, id int64) (*modelrepo.TaskDB, error) {
 	return &task, nil
 }
 
+func (r *Repo) List(ctx context.Context) ([]*modelrepo.TaskDB, error) {
+	const op = "postgres.List"
+
+	builder := sq.Select(idColumn, titleColumn, descriptionColumn, statusColumn, authorColumn,
+		operatorColumn, dueDateColumn, completedAtColumn, createdAtColumn, updatedAtColumn).
+		From(tableName).
+		PlaceholderFormat(sq.Dollar)
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%s: building SQL failed: %w", op, err)
+	}
+
+	// TODO: пагинация и фильтрация
+
+	tasks := make([]*modelrepo.TaskDB, 0)
+
+	err = pgxscan.Select(ctx, r.db, &tasks, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("%s: query failed: %w", op, err)
+	}
+
+	return tasks, nil
+}
+
 func (r *Repo) Delete(ctx context.Context, id int64) error {
 	const op = "postgres.Delete"
 

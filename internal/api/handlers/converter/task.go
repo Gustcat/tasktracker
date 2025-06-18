@@ -7,18 +7,22 @@ import (
 )
 
 func DTOToTask(createTask *dto.CreateTaskRequest) *model.Task {
-	var t *time.Time
-	if createTask.DueDate != nil {
-		tt := time.Time(*createTask.DueDate)
-		t = &tt
-	}
-
 	return &model.Task{
 		Title:       createTask.Title,
 		Description: createTask.Description,
 		Status:      createTask.Status,
 		Operator:    createTask.Operator,
-		DueDate:     t,
+		DueDate:     (*time.Time)(createTask.DueDate),
+	}
+}
+
+func UpdateDTOToTaskUpdate(updateTask *dto.UpdateTaskRequest) *model.TaskUpdate {
+	return &model.TaskUpdate{
+		Title:       updateTask.Title,
+		Description: updateTask.Description,
+		Status:      updateTask.Status,
+		Operator:    updateTask.Operator,
+		DueDate:     (*time.Time)(updateTask.DueDate),
 	}
 }
 
@@ -28,7 +32,7 @@ func TaskToDTO(task *model.Task) *dto.TaskResponse {
 		Description: task.Description,
 		Status:      task.Status,
 		Operator:    task.Operator,
-		DueDate:     task.DueDate,
+		DueDate:     (*dto.Date)(task.DueDate),
 		CreatedAt:   task.CreatedAt,
 		UpdatedAt:   task.UpdatedAt,
 		CompletedAt: task.CompletedAt,

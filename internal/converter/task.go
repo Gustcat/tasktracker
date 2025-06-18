@@ -4,18 +4,29 @@ import (
 	"database/sql"
 	"github.com/Gustcat/task-server/internal/model"
 	modelRepo "github.com/Gustcat/task-server/internal/repository/model"
-	"time"
 )
 
 func TaskToRepo(task *model.Task) *modelRepo.TaskCreateDB {
 	return &modelRepo.TaskCreateDB{
 		Title:       task.Title,
-		Description: pointerToSQL[string](task.Description),
+		Description: pointerToSQL(task.Description),
 		Status:      task.Status,
 		Author:      task.Author,
-		Operator:    pointerToSQL[int64](task.Operator),
-		DueDate:     pointerToSQL[time.Time](task.DueDate),
-		CompletedAt: pointerToSQL[time.Time](task.CompletedAt),
+		Operator:    pointerToSQL(task.Operator),
+		DueDate:     pointerToSQL(task.DueDate),
+		CompletedAt: pointerToSQL(task.CompletedAt),
+	}
+}
+
+func TaskUpdateToRepo(task *model.TaskUpdate) *modelRepo.TaskUpdateDB {
+	return &modelRepo.TaskUpdateDB{
+		Title:       pointerToSQL(task.Title),
+		Description: pointerToSQL(task.Description),
+		Status:      pointerToSQL(task.Status),
+		Operator:    pointerToSQL(task.Operator),
+		DueDate:     pointerToSQL(task.DueDate),
+		CompletedAt: pointerToSQL(task.CompletedAt),
+		UpdatedAt:   task.UpdatedAt,
 	}
 }
 
@@ -28,6 +39,7 @@ func pointerToSQL[T any](pointer *T) sql.Null[T] {
 
 func RepoToTask(task *modelRepo.TaskDB) *model.Task {
 	return &model.Task{
+		ID:          task.ID,
 		Title:       task.Title,
 		Description: SQLToPointer(task.Description),
 		Status:      task.Status,

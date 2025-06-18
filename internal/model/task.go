@@ -26,3 +26,13 @@ type Task struct {
 	CreatedAt   time.Time
 	UpdatedAt   *time.Time
 }
+
+type TaskUpdate struct {
+	Title       *string
+	Description *string
+	Status      *Status
+	Operator    *int64
+	DueDate     *time.Time
+	CompletedAt *time.Time
+	UpdatedAt   time.Time
+}

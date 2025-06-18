@@ -22,3 +22,13 @@ type TaskDB struct {
 	UpdatedAt sql.Null[time.Time] `db:"updated_at"`
 	TaskCreateDB
 }
+
+type TaskUpdateDB struct {
+	Title       sql.Null[string]       `db:"title"`
+	Description sql.Null[string]       `db:"description"`
+	Status      sql.Null[model.Status] `db:"status"`
+	Operator    sql.Null[int64]        `db:"operator"`
+	DueDate     sql.Null[time.Time]    `db:"due_date"`
+	CompletedAt sql.Null[time.Time]    `db:"completed_at"`
+	UpdatedAt   time.Time              `db:"updated_at"`
+}

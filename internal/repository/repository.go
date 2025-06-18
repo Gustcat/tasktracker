@@ -15,5 +15,6 @@ type TaskRepository interface {
 	Create(ctx context.Context, task *modelrepo.TaskCreateDB) (int64, error)
 	Get(ctx context.Context, id int64) (*modelrepo.TaskDB, error)
 	List(ctx context.Context) ([]*modelrepo.TaskDB, error)
+	Update(ctx context.Context, id int64, task *modelrepo.TaskUpdateDB) (*modelrepo.TaskDB, error)
 	Delete(ctx context.Context, id int64) error
 }

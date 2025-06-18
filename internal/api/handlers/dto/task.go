@@ -52,7 +52,7 @@ type TaskResponse struct {
 	Description *string      `json:"description"`
 	Status      model.Status `json:"status" binding:"required,oneof=new in_progress done todo"`
 	Operator    *int64       `json:"operator"`
-	DueDate     *time.Time   `json:"due_date" time_format:"2006-01-02"`
+	DueDate     *Date        `json:"due_date" time_format:"2006-01-02"`
 	CompletedAt *time.Time   `json:"completed_at" time_format:"2006-01-02 15:04:05"`
 	CreatedAt   time.Time    `json:"created_at" time_format:"2006-01-02 15:04:05"`
 	UpdatedAt   *time.Time   `json:"updated_at" time_format:"2006-01-02 15:04:05"`
@@ -60,4 +60,12 @@ type TaskResponse struct {
 
 type IdUri struct {
 	ID int64 `uri:"id" binding:"required"`
+}
+
+type UpdateTaskRequest struct {
+	Title       *string       `json:"title" binding:"omitempty,min=2,max=250"`
+	Description *string       `json:"description"`
+	Status      *model.Status `json:"status" binding:"omitempty,oneof=new in_progress done todo"`
+	Operator    *int64        `json:"operator" binding:"omitempty,gte=0"`
+	DueDate     *Date         `json:"due_date" time_format:"2006-01-02 15:04:05"`
 }

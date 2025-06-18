@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"strings"
 )
 
 const (
@@ -144,6 +145,65 @@ func (r *Repo) List(ctx context.Context) ([]*modelrepo.TaskDB, error) {
 	}
 
 	return tasks, nil
+}
+
+func (r *Repo) Update(ctx context.Context, id int64, task *modelrepo.TaskUpdateDB) (*modelrepo.TaskDB, error) {
+	const op = "postgres.Update"
+	alias := "p"
+
+	builder := sq.Update(fmt.Sprintf("%s AS %s", tableName, alias)).
+		PlaceholderFormat(sq.Dollar).
+		Where(sq.Eq{idColumn: id}).
+		Set(updatedAtColumn, task.UpdatedAt)
+
+	if task.Title.Valid {
+		builder = builder.Set(titleColumn, task.Title)
+	}
+
+	if task.Description.Valid {
+		builder = builder.Set(descriptionColumn, task.Description)
+	}
+
+	if task.Status.Valid {
+		builder = builder.Set(statusColumn, task.Status).
+			Set(completedAtColumn, task.CompletedAt)
+	}
+
+	if task.Operator.Valid {
+		builder = builder.Set(operatorColumn, task.Operator)
+	}
+
+	if task.DueDate.Valid {
+		builder = builder.Set(dueDateColumn, task.DueDate)
+	}
+
+	fields := []string{idColumn, titleColumn, descriptionColumn, statusColumn, operatorColumn,
+		dueDateColumn, completedAtColumn, authorColumn, createdAtColumn, updatedAtColumn}
+	row := strings.Join(fields, ", ")
+	builder = builder.Suffix(fmt.Sprintf("RETURNING %s", row))
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%s: building SQL failed: %w", op, err)
+	}
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("%s: query failed: %w", op, err)
+	}
+	defer rows.Close()
+
+	var updatedTask modelrepo.TaskDB
+	err = pgxscan.ScanOne(&updatedTask, rows)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, repository.ErrTaskNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("%s: executing query failed: %w", op, err)
+	}
+
+	return &updatedTask, nil
+
 }
 
 func (r *Repo) Delete(ctx context.Context, id int64) error {

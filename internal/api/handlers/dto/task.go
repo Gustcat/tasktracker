@@ -7,11 +7,11 @@ import (
 )
 
 type CreateTaskRequest struct {
-	Title       string       `json:"title" binding:"required,min=2,max=250"`
-	Description *string      `json:"description"`
-	Status      model.Status `json:"status" binding:"required,oneof=new in_progress done todo"`
-	Operator    *int64       `json:"operator" binding:"gte=0"`
-	DueDate     *Date        `json:"due_date" time_format:"2006-01-02 15:04:05"` //TODO: кастомная валидация, не меньше текущей даты
+	Title       string        `json:"title" binding:"min=2,max=250"`
+	Description *string       `json:"description"`
+	Status      *model.Status `json:"status" binding:"omitempty,oneof=new in_progress done todo"`
+	Operator    *int64        `json:"operator" binding:"omitempty,gte=0"`
+	DueDate     *Date         `json:"due_date" time_format:"2006-01-02 15:04:05"` //TODO: кастомная валидация, не меньше текущей даты
 }
 
 type Date time.Time
@@ -50,9 +50,9 @@ type TaskResponse struct {
 	Author      int64        `json:"author"`
 	Title       string       `json:"title"`
 	Description *string      `json:"description"`
-	Status      model.Status `json:"status" binding:"required,oneof=new in_progress done todo"`
+	Status      model.Status `json:"status" binding:"oneof=new in_progress done todo"`
 	Operator    *int64       `json:"operator"`
-	DueDate     *Date        `json:"due_date" time_format:"2006-01-02"`
+	DueDate     *Date        `json:"due_date" time_format:"2006-01-02" binding:"omitempty,not_before_now"`
 	CompletedAt *time.Time   `json:"completed_at" time_format:"2006-01-02 15:04:05"`
 	CreatedAt   time.Time    `json:"created_at" time_format:"2006-01-02 15:04:05"`
 	UpdatedAt   *time.Time   `json:"updated_at" time_format:"2006-01-02 15:04:05"`

@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-func DTOToTask(createTask *dto.CreateTaskRequest) *model.Task {
-	return &model.Task{
+func DTOToTask(createTask *dto.CreateTaskRequest) *model.TaskCreate {
+	return &model.TaskCreate{
 		Title:       createTask.Title,
 		Description: createTask.Description,
 		Status:      createTask.Status,

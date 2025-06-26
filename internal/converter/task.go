@@ -6,11 +6,16 @@ import (
 	modelRepo "github.com/Gustcat/task-server/internal/repository/model"
 )
 
-func TaskToRepo(task *model.Task) *modelRepo.TaskCreateDB {
+func TaskToRepo(task *model.TaskCreate) *modelRepo.TaskCreateDB {
+	status := model.StatusNew
+	if task.Status != nil {
+		status = *task.Status
+	}
+
 	return &modelRepo.TaskCreateDB{
 		Title:       task.Title,
 		Description: pointerToSQL(task.Description),
-		Status:      task.Status,
+		Status:      status,
 		Author:      task.Author,
 		Operator:    pointerToSQL(task.Operator),
 		DueDate:     pointerToSQL(task.DueDate),

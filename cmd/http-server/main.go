@@ -5,8 +5,12 @@ import (
 	taskHandler "github.com/Gustcat/task-server/internal/api/handlers/task"
 	"github.com/Gustcat/task-server/internal/config"
 	"github.com/Gustcat/task-server/internal/logger"
+	"github.com/Gustcat/task-server/internal/middleware"
 	"github.com/Gustcat/task-server/internal/repository/postgres"
 	taskService "github.com/Gustcat/task-server/internal/service/task"
+	"github.com/Gustcat/task-server/internal/validation"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	"log/slog"
 	"net/http"
 	"os"
@@ -60,15 +64,25 @@ func main() {
 	handler := taskHandler.NewHandler(service)
 
 	log.Debug("Try to setup router")
-	router := gin.Default()
+	router := gin.New()
+
+	router.Use(gin.Recovery())
+	router.Use(middleware.LoggerMiddleware(log))
+
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		err := v.RegisterValidation("not_before_now", validation.NotBeforeNowValidator)
+		if err != nil {
+			return
+		}
+	}
 
 	r := router.Group("/api/v1/tasks")
 	{
-		r.POST("/", handler.Create(ctx, log))
-		r.GET("/", handler.List(ctx, log))
-		r.GET("/:id", handler.Get(ctx, log))
-		r.PATCH("/:id", handler.Update(ctx, log))
-		r.DELETE("/:id", handler.Delete(ctx, log))
+		r.POST("/", handler.Create)
+		r.GET("/", handler.List)
+		r.GET("/:id", handler.Get)
+		r.PATCH("/:id", handler.Update)
+		r.DELETE("/:id", handler.Delete)
 	}
 
 	srv := &http.Server{

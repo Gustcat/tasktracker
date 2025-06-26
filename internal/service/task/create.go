@@ -14,7 +14,7 @@ const (
 	adressAuthService = "auth-service:50051"
 )
 
-func (s *Serv) Create(ctx context.Context, task *model.Task, author int64) (int64, error) {
+func (s *Serv) Create(ctx context.Context, task *model.TaskCreate, author int64) (int64, error) {
 	users := make([]int64, 1, 2)
 	users[0] = author
 	if task.Operator != nil {
@@ -27,8 +27,16 @@ func (s *Serv) Create(ctx context.Context, task *model.Task, author int64) (int6
 
 	task.Author = author
 
-	if task.Status == model.StatusDone {
-		*task.CompletedAt = time.Now()
+	if task.Status == nil {
+		if task.Operator == nil {
+			*task.Status = model.StatusNew
+		} else {
+			*task.Status = model.StatusTODO
+		}
+	} else {
+		if *task.Status == model.StatusDone {
+			*task.CompletedAt = time.Now()
+		}
 	}
 
 	insertTask := converter.TaskToRepo(task)
@@ -36,11 +44,9 @@ func (s *Serv) Create(ctx context.Context, task *model.Task, author int64) (int6
 	id, err := s.taskRepo.Create(ctx, insertTask)
 	if err != nil {
 		return 0, err
-
 	}
 
 	return id, nil
-
 }
 
 //func validateUsers(users []int64) error {

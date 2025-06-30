@@ -1,0 +1,21 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+
+# Бинарные файлы
+*.exe
+*.out
+*.log
+
+# Сборочные артефакты Go
+bin/
+build/
+vendor/
+
+# Docker-файлы
+Dockerfile
+docker-compose.yml

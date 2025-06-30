@@ -16,7 +16,7 @@ type Config struct {
 
 type HTTPServer struct {
 	Host        string `env:"HTTP_HOST" envDefault:"localhost"`
-	Port        string `env:"HTTP_PORT" envDefault:"8080"`
+	Port        string `env:"HTTP_PORT" envDefault:"8081"`
 	Address     string
 	Timeout     time.Duration `env:"HTTP_TIMEOUT" envDefault:"5s"`
 	IdleTimeout time.Duration `env:"HTTP_IDLE_TIMEOUT" envDefault:"60s"`
@@ -26,7 +26,7 @@ type HTTPServer struct {
 
 type Postgres struct {
 	Host     string `env:"POSTGRES_HOST" envDefault:"localhost"`
-	Port     string `env:"POSTGRES_PORT" envDefault:"5432"`
+	Port     string `env:"POSTGRES_PORT" envDefault:"54322"`
 	User     string `env:"POSTGRES_USER" envDefault:"user"`
 	Password string `env:"POSTGRES_PASSWORD" envDefault:"password"`
 	Db       string `env:"POSTGRES_DB" envDefault:"postgres"`

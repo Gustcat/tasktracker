@@ -1,0 +1,70 @@
+volumes:
+  auth_postgres_volume:
+  prometheus_data:
+  grafana_data:
+  tasks_postgres_volume:
+
+services:
+  auth-pg:
+    image: postgres:15-alpine3.17
+    env_file:
+      - ./auth/local.env
+    ports:
+      - "54321:5432"
+    volumes:
+      - auth_postgres_volume:/var/lib/postgresql/data
+
+  auth_migrator:
+    build:
+      context: ./auth
+      dockerfile: migration_local.Dockerfile
+    restart: on-failure
+    environment:
+      DB_HOST: auth-pg
+
+  backend:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    restart: on-failure
+    ports:
+      - "50051:50051"
+      - "8080:8080"
+      - "8090:8090"
+      - "2112:2112"
+    env_file: ./auth/local.env
+    depends_on:
+      - auth-pg
+
+  prometheus:
+    image: prom/prometheus:v2.37.9
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./auth/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./auth/alerts.yml:/etc/prometheus/alerts.yml
+      - prometheus_data:/prometheus
+
+  grafana:
+    image: grafana/grafana-oss:10.0.3
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  tasks-pg:
+    image: postgres:15-alpine3.17
+    env_file:
+      - ./tasks/.env
+    ports:
+      - "${POSTGRES_PORT:-54322}:5432"
+    volumes:
+      - tasks_postgres_volume:/var/lib/postgresql/data
+
+  tasks-migrator:
+    build:
+      context: ./tasks
+      dockerfile: migration.Dockerfile
+    restart: on-failure
+    environment:
+      DB_HOST: tasks-pg

@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	descUser "github.com/Gustcat/auth/pkg/user_v1"
 	taskHandler "github.com/Gustcat/task-server/internal/api/handlers/task"
+	"github.com/Gustcat/task-server/internal/authgrpc/user"
 	"github.com/Gustcat/task-server/internal/config"
 	"github.com/Gustcat/task-server/internal/logger"
 	"github.com/Gustcat/task-server/internal/middleware"
@@ -11,6 +13,8 @@ import (
 	"github.com/Gustcat/task-server/internal/validation"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log/slog"
 	"net/http"
 	"os"
@@ -60,7 +64,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	service := taskService.NewService(repo)
+	conn, err := grpc.NewClient(conf.AuthGRPC.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Error("can't connect to auth server", slog.String("error", err.Error()))
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			log.Error("failed to close to server", slog.String("error", err.Error()))
+		}
+	}(conn)
+
+	client := user.NewClient(descUser.NewUserV1Client(conn))
+
+	service := taskService.NewService(repo, client)
 	handler := taskHandler.NewHandler(service)
 
 	log.Debug("Try to setup router")

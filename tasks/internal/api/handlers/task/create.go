@@ -8,6 +8,7 @@ import (
 	"github.com/Gustcat/task-server/internal/lib/response"
 	"github.com/Gustcat/task-server/internal/logger"
 	"github.com/Gustcat/task-server/internal/repository"
+	"github.com/Gustcat/task-server/internal/service"
 	"github.com/Gustcat/task-server/internal/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -21,7 +22,7 @@ func (h *Handler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
 	log := logger.LogFromContextAddOP(ctx, op)
 
-	var author int64 = 1 // TODO: получение автора из токена. Сделать общую функцию для получения юзера и роли для всех хэндлеров
+	var author int64 = 2 // TODO: получение автора из токена. Сделать общую функцию для получения юзера и роли для всех хэндлеров
 
 	var requestTask dto.CreateTaskRequest
 
@@ -48,7 +49,11 @@ func (h *Handler) Create(c *gin.Context) {
 			"Task with title %s %s already exists", task.Title)))
 		return
 	}
-
+	if errors.Is(err, service.ErrUserNotAllowed) {
+		log.Error("User is not allowed to create task", slog.String("error", err.Error()))
+		c.AbortWithStatusJSON(http.StatusForbidden, response.Error(err.Error()))
+		return
+	}
 	if err != nil {
 		log.Error("Failed to create task", slog.String("error", err.Error()))
 		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Error("Failed to create task"))

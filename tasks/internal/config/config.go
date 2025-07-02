@@ -12,6 +12,7 @@ type Config struct {
 	Env        string `env:"ENV" envDefault:"prod"`
 	Postgres   Postgres
 	HTTPServer HTTPServer
+	AuthGRPC   AuthGRPC
 }
 
 type HTTPServer struct {
@@ -34,19 +35,30 @@ type Postgres struct {
 	DSN      string
 }
 
+type AuthGRPC struct {
+	Host    string `env:"AUTH_GRPC_HOST" envDefault:"localhost"`
+	Port    string `env:"AUTH_GRPC_PORT" envDefault:"50051"`
+	Address string
+}
+
 func New() (*Config, error) {
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {
 		return nil, fmt.Errorf("loading config from env is failed: %w", err)
 	}
-	buildAddress(&cfg.HTTPServer)
+	buildHTTPAddress(&cfg.HTTPServer)
 	buildDSN(&cfg.Postgres)
+	buildGRPCAddress(&cfg.AuthGRPC)
 
 	return cfg, nil
 }
 
-func buildAddress(httpserver *HTTPServer) {
+func buildHTTPAddress(httpserver *HTTPServer) {
 	httpserver.Address = fmt.Sprintf("%s:%s", httpserver.Host, httpserver.Port)
+}
+
+func buildGRPCAddress(authGRPC *AuthGRPC) {
+	authGRPC.Address = fmt.Sprintf("%s:%s", authGRPC.Host, authGRPC.Port)
 }
 
 func buildDSN(p *Postgres) {

@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/Gustcat/auth/internal/client/db"
 	"github.com/Gustcat/auth/internal/logger"
@@ -11,6 +12,7 @@ import (
 	"github.com/Gustcat/auth/internal/repository/user/converter"
 	modelRepo "github.com/Gustcat/auth/internal/repository/user/model"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v4"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"time"
@@ -87,8 +89,8 @@ func (r *repo) Get(ctx context.Context, id int64) (int64, *model.UserInfo, time.
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		logger.Error("Sql query to get user is not generated", zap.Int64("id", id))
-		return 0, nil, time.Time{}, sql.NullTime{Time: time.Time{}, Valid: false}, err
+		return 0, nil, time.Time{}, sql.NullTime{Time: time.Time{}, Valid: false},
+			fmt.Errorf("building SQL failed: %w", err)
 	}
 
 	q := db.Query{
@@ -98,9 +100,13 @@ func (r *repo) Get(ctx context.Context, id int64) (int64, *model.UserInfo, time.
 
 	var user modelRepo.User
 	err = r.db.DB().ScanOneContext(ctx, &user, q, args...)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, nil, time.Time{}, sql.NullTime{Time: time.Time{}, Valid: false},
+			repository.ErrUserNotFound
+	}
 	if err != nil {
-		logger.Error("Query to get user failed", zap.Int64("id", id))
-		return 0, nil, time.Time{}, sql.NullTime{Time: time.Time{}, Valid: false}, err
+		return 0, nil, time.Time{}, sql.NullTime{Time: time.Time{}, Valid: false},
+			fmt.Errorf("executing query failed: %w", err)
 	}
 
 	id, userInfo, createdAt, updatedAt := converter.ToUserFromRepo(&user)

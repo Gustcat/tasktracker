@@ -3,8 +3,14 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"github.com/Gustcat/auth/internal/model"
 	"time"
+)
+
+var (
+	ErrUserNotFound = errors.New("user not found")
+	ErrUserExists   = errors.New("user already exists")
 )
 
 type UserRepository interface {

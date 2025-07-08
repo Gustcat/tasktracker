@@ -12,53 +12,15 @@ var (
 	ErrUserNotFound = errors.New("user not found")
 )
 
-type userResult struct {
-	userType string // "author" или "operator"
-	user     *model.User
-	err      error
-}
-
-func (s *Serv) validateUsers(ctx context.Context, authorId int64, operatorId *int64) (*model.User, *model.User, error) {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	resultCh := make(chan userResult, 2)
-
-	findUser := func(userId int64, userType string) {
-		user, err := s.authClient.GetUser(ctx, userId)
-		if err != nil {
-			st, ok := status.FromError(err)
-			if ok && st.Code() == codes.NotFound {
-				err = ErrUserNotFound
-			}
+func (s *Serv) validateUser(ctx context.Context, userId int64) (*model.User, error) {
+	user, err := s.authClient.GetUser(ctx, userId)
+	if err != nil {
+		st, ok := status.FromError(err)
+		if ok && st.Code() == codes.NotFound {
+			return nil, ErrUserNotFound
 		}
-		resultCh <- userResult{userType: userType, user: user, err: err}
+		return nil, err
 	}
 
-	go findUser(authorId, "author")
-	expected := 1
-
-	if operatorId != nil {
-		go findUser(*operatorId, "operator")
-		expected += 1
-	}
-
-	var author *model.User
-	var operator *model.User
-
-	for i := 0; i < expected; i++ {
-		result := <-resultCh
-		if result.err != nil {
-			cancel()
-			return nil, nil, result.err
-		}
-		switch result.userType {
-		case "author":
-			author = result.user
-		case "operator":
-			operator = result.user
-		}
-	}
-
-	return author, operator, nil
+	return user, nil
 }

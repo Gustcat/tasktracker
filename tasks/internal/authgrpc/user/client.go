@@ -23,9 +23,8 @@ func (c *Client) GetUser(ctx context.Context, id int64) (*model.User, error) {
 	}
 
 	return &model.User{
-		ID:    resp.Id,
-		Name:  resp.Info.Name,
-		Email: resp.Info.Email,
-		Role:  model.Role(resp.Info.Role),
+		ID:   resp.Id,
+		Name: resp.Info.Name,
+		Role: model.Role(resp.Info.Role),
 	}, nil
 }

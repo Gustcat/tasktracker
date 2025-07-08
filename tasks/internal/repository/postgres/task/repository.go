@@ -1,4 +1,4 @@
-package postgres
+package task
 
 import (
 	"context"
@@ -30,30 +30,21 @@ const (
 )
 
 type Repo struct {
-	db *pgxpool.Pool
+	db          *pgxpool.Pool
+	watcherRepo repository.WatcherRepository
 }
 
-func NewRepo(ctx context.Context, DSN string) (*Repo, error) {
-	const op = "repository.postgres.NewRepo"
-
-	db, err := pgxpool.Connect(ctx, DSN)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to db, %s: %w", op, err)
-	}
-	return &Repo{db: db}, nil
+func NewRepo(db *pgxpool.Pool, watcherRepo repository.WatcherRepository) (*Repo, error) {
+	return &Repo{
+		db:          db,
+		watcherRepo: watcherRepo,
+	}, nil
 }
 
-func (r *Repo) Ping(ctx context.Context) error {
-	return r.db.Ping(ctx)
-}
+func (r *Repo) Create(ctx context.Context, task *modelrepo.TaskCreateDB, watcherSelf bool) (int64, error) {
+	const op = "postgres.task.Create"
 
-func (r *Repo) Close() {
-	r.db.Close()
-}
-
-func (r *Repo) Create(ctx context.Context, task *modelrepo.TaskCreateDB) (int64, error) {
-	const op = "postgres.Create"
-
+	//TODO: транзакция
 	builder := sq.Insert(tableName).
 		Columns(titleColumn,
 			descriptionColumn,
@@ -87,11 +78,18 @@ func (r *Repo) Create(ctx context.Context, task *modelrepo.TaskCreateDB) (int64,
 		return 0, fmt.Errorf("%s: executing query failed: %w", op, err)
 	}
 
+	if watcherSelf {
+		err = r.watcherRepo.Add(ctx, id, task.Author)
+		if err != nil {
+			return 0, err
+		}
+	}
+
 	return id, nil
 }
 
 func (r *Repo) Get(ctx context.Context, id int64) (*modelrepo.TaskDB, error) {
-	const op = "postgres.Get"
+	const op = "postgres.task.Get"
 
 	builder := sq.Select(idColumn, titleColumn, descriptionColumn, statusColumn, authorColumn,
 		operatorColumn, dueDateColumn, completedAtColumn, createdAtColumn, updatedAtColumn).
@@ -123,7 +121,7 @@ func (r *Repo) Get(ctx context.Context, id int64) (*modelrepo.TaskDB, error) {
 }
 
 func (r *Repo) List(ctx context.Context) ([]*modelrepo.TaskDB, error) {
-	const op = "postgres.List"
+	const op = "postgres.task.List"
 
 	builder := sq.Select(idColumn, titleColumn, descriptionColumn, statusColumn, authorColumn,
 		operatorColumn, dueDateColumn, completedAtColumn, createdAtColumn, updatedAtColumn).
@@ -148,7 +146,7 @@ func (r *Repo) List(ctx context.Context) ([]*modelrepo.TaskDB, error) {
 }
 
 func (r *Repo) Update(ctx context.Context, id int64, task *modelrepo.TaskUpdateDB) (*modelrepo.TaskDB, error) {
-	const op = "postgres.Update"
+	const op = "postgres.task.Update"
 	alias := "p"
 
 	builder := sq.Update(fmt.Sprintf("%s AS %s", tableName, alias)).
@@ -207,7 +205,7 @@ func (r *Repo) Update(ctx context.Context, id int64, task *modelrepo.TaskUpdateD
 }
 
 func (r *Repo) Delete(ctx context.Context, id int64) error {
-	const op = "postgres.Delete"
+	const op = "postgres.task.Delete"
 
 	builder := sq.Delete(tableName).
 		Where(sq.Eq{idColumn: id}).

@@ -10,8 +10,9 @@ type CreateTaskRequest struct {
 	Title       string        `json:"title" binding:"min=2,max=250"`
 	Description *string       `json:"description"`
 	Status      *model.Status `json:"status" binding:"omitempty,oneof=new in_progress done todo"`
+	WatchSelf   bool          `json:"watch_self"`
 	Operator    *int64        `json:"operator" binding:"omitempty,gte=0"`
-	DueDate     *Date         `json:"due_date" time_format:"2006-01-02 15:04:05"` //TODO: кастомная валидация, не меньше текущей даты
+	DueDate     *Date         `json:"due_date" time_format:"2006-01-02 15:04:05"`
 }
 
 type Date time.Time

@@ -11,6 +11,7 @@ func DTOToTask(createTask *dto.CreateTaskRequest) *model.TaskCreate {
 		Title:       createTask.Title,
 		Description: createTask.Description,
 		Status:      createTask.Status,
+		WatchSelf:   createTask.WatchSelf,
 		Operator:    createTask.Operator,
 		DueDate:     (*time.Time)(createTask.DueDate),
 	}

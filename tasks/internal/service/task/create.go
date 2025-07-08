@@ -2,30 +2,39 @@ package task
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/Gustcat/task-server/internal/converter"
+	"github.com/Gustcat/task-server/internal/lib/ctxutils"
 	"github.com/Gustcat/task-server/internal/model"
 	"github.com/Gustcat/task-server/internal/service"
 	"time"
 )
 
-func (s *Serv) Create(ctx context.Context, task *model.TaskCreate, authorId int64) (int64, error) {
-
-	author, _, err := s.validateUsers(ctx, authorId, task.Operator)
-	if err != nil {
-		return 0, err
+func (s *Serv) Create(ctx context.Context, task *model.TaskCreate) (int64, error) {
+	author := ctxutils.UserFromContext(ctx)
+	if author == nil {
+		return 0, fmt.Errorf("%w: author", ErrUserNotFound) //TODO: обработать такую ошибку слоем выше
 	}
 
 	if author.Role == model.USER {
-		if task.Operator != nil && authorId != *task.Operator {
+		if task.Operator != nil && author.ID != *task.Operator {
 			return 0, fmt.Errorf("%w to assign anyone other than himself", service.ErrUserNotAllowed)
 		}
 		if task.Status != nil && *task.Status == model.StatusDone {
 			return 0, fmt.Errorf("%w to create task with `%s` status", service.ErrUserNotAllowed, model.StatusDone)
 		}
-	} // получить роль можно же из токена
+	}
 
-	task.Author = authorId
+	if task.Operator != nil {
+		_, err := s.validateUser(ctx, *task.Operator)
+		if errors.Is(err, ErrUserNotFound) {
+			return 0, fmt.Errorf("%w: operator", ErrUserNotFound)
+		}
+		if err != nil {
+			return 0, err
+		}
+	}
 
 	if task.Status == nil {
 		if task.Operator == nil {
@@ -39,9 +48,10 @@ func (s *Serv) Create(ctx context.Context, task *model.TaskCreate, authorId int6
 		}
 	}
 
+	task.Author = author.ID
 	insertTask := converter.TaskToRepo(task)
 
-	id, err := s.taskRepo.Create(ctx, insertTask)
+	id, err := s.taskRepo.Create(ctx, insertTask, task.WatchSelf)
 	if err != nil {
 		return 0, err
 	}

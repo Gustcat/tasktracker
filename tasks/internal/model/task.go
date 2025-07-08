@@ -32,6 +32,7 @@ type TaskCreate struct {
 	Title       string
 	Description *string
 	Status      *Status
+	WatchSelf   bool
 	Operator    *int64
 	DueDate     *time.Time
 	CompletedAt *time.Time

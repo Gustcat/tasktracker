@@ -22,8 +22,6 @@ func (h *Handler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
 	log := logger.LogFromContextAddOP(ctx, op)
 
-	var author int64 = 2 // TODO: получение автора из токена. Сделать общую функцию для получения юзера и роли для всех хэндлеров
-
 	var requestTask dto.CreateTaskRequest
 
 	log.Debug("Receive request for create task")
@@ -42,11 +40,11 @@ func (h *Handler) Create(c *gin.Context) {
 	log.Debug("Parsed create successfully", slog.Any("task", requestTask))
 
 	task := converter.DTOToTask(&requestTask)
-	id, err := h.service.Create(ctx, task, author)
+	id, err := h.service.Create(ctx, task)
 	if errors.Is(err, repository.ErrTaskExists) {
 		log.Error("Get error", slog.String("error", err.Error()))
 		c.AbortWithStatusJSON(http.StatusBadRequest, response.Error(fmt.Sprintf(
-			"Task with title %s %s already exists", task.Title)))
+			"Task with title %s already exists", task.Title)))
 		return
 	}
 	if errors.Is(err, service.ErrUserNotAllowed) {

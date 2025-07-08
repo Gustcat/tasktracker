@@ -11,6 +11,7 @@ type TaskCreateDB struct {
 	Description sql.Null[string]    `db:"description"`
 	Status      model.Status        `db:"status"`
 	Author      int64               `db:"author"`
+	Watcher     sql.Null[int64]     `db:"watcher"`
 	Operator    sql.Null[int64]     `db:"operator"`
 	DueDate     sql.Null[time.Time] `db:"due_date"`
 	CompletedAt sql.Null[time.Time] `db:"completed_at"`

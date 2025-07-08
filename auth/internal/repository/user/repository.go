@@ -187,8 +187,8 @@ func (r *repo) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (r *repo) Login(ctx context.Context, username string) (string, *model.UserInfo, error) {
-	builder := sq.Select(roleColumn, passwordColumn).
+func (r *repo) Login(ctx context.Context, username string) (string, *model.UserToken, error) {
+	builder := sq.Select(idColumn, roleColumn, passwordColumn).
 		From(tableName).
 		PlaceholderFormat(sq.Dollar).
 		Where(sq.Eq{nameColumn: username}).
@@ -205,15 +205,15 @@ func (r *repo) Login(ctx context.Context, username string) (string, *model.UserI
 		QueryRaw: query,
 	}
 
-	userinfo := &model.UserInfo{
+	user := &model.UserToken{
 		Name: username,
 	}
 	var hashPassword string
-	err = r.db.DB().QueryRowContext(ctx, q, args...).Scan(&userinfo.Role, &hashPassword)
+	err = r.db.DB().QueryRowContext(ctx, q, args...).Scan(&user.ID, &user.Role, &hashPassword)
 	if err != nil {
 		logger.Error("Query to login user failed", zap.String("username", username))
 		return "", nil, err
 	}
 
-	return hashPassword, userinfo, nil
+	return hashPassword, user, nil
 }

@@ -14,9 +14,10 @@ func (s *serv) GetAccessToken(ctx context.Context, refreshToken string) (string,
 		return "", status.Errorf(codes.Aborted, "invalid refresh token")
 	}
 
-	newAccessToken, err := utils.GenerateToken(model.UserInfo{
-		Name: claims.Username,
+	newAccessToken, err := utils.GenerateToken(model.UserToken{
+		Name: claims.Name,
 		Role: claims.Role,
+		ID:   claims.ID,
 	},
 		[]byte(s.tokenConfig.AccessTokenSecretKey()),
 		s.tokenConfig.AccessTokenExpiration(),

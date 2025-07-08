@@ -7,13 +7,14 @@ import (
 	"time"
 )
 
-func GenerateToken(info model.UserInfo, secretKey []byte, duration time.Duration) (string, error) {
+func GenerateToken(user model.UserToken, secretKey []byte, duration time.Duration) (string, error) {
 	claims := model.UserClaims{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(duration).Unix(),
 		},
-		Username: info.Name,
-		Role:     info.Role,
+		Name: user.Name,
+		Role: user.Role,
+		ID:   user.ID,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

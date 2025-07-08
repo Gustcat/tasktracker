@@ -19,3 +19,9 @@ type UserInfo struct {
 	Email string `db:"email"`
 	Role  int32  `db:"role"`
 }
+
+type UserToken struct {
+	Name string `db:"name"`
+	Role int32  `db:"role"`
+	ID   int64  `db:"id"`
+}

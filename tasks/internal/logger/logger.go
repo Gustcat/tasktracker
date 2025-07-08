@@ -2,13 +2,10 @@ package logger
 
 import (
 	"context"
+	"github.com/Gustcat/task-server/internal/lib/ctxutils"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"log/slog"
 )
-
-type ctxKey string
-
-const LoggerKey ctxKey = "logger"
 
 func SetupLogger(levelLog slog.Level) *slog.Logger {
 	var log *slog.Logger
@@ -29,7 +26,7 @@ func SetupLogger(levelLog slog.Level) *slog.Logger {
 }
 
 func LogFromContext(ctx context.Context) *slog.Logger {
-	logger, ok := ctx.Value(LoggerKey).(*slog.Logger)
+	logger, ok := ctx.Value(ctxutils.LoggerKey).(*slog.Logger)
 	if !ok {
 		return SetupLogger(slog.LevelInfo)
 	}

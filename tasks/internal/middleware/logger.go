@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"github.com/Gustcat/task-server/internal/logger"
+	"github.com/Gustcat/task-server/internal/lib/ctxutils"
 	"github.com/gin-gonic/gin"
 	"log/slog"
 	"time"
@@ -15,7 +15,7 @@ func LoggerMiddleware(log *slog.Logger) gin.HandlerFunc {
 		reqID := uuid.NewString()
 		requestLogger := log.With(slog.String("request_id", reqID))
 
-		ctx := context.WithValue(c.Request.Context(), logger.LoggerKey, requestLogger)
+		ctx := context.WithValue(c.Request.Context(), ctxutils.LoggerKey, requestLogger)
 		c.Request = c.Request.WithContext(ctx)
 
 		start := time.Now()

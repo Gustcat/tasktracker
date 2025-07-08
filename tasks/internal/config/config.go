@@ -9,10 +9,11 @@ import (
 
 // Config общий конфиг
 type Config struct {
-	Env        string `env:"ENV" envDefault:"prod"`
-	Postgres   Postgres
-	HTTPServer HTTPServer
-	AuthGRPC   AuthGRPC
+	Env         string `env:"ENV" envDefault:"prod"`
+	Postgres    Postgres
+	HTTPServer  HTTPServer
+	AuthGRPC    AuthGRPC
+	TokenConfig TokenConfig
 }
 
 type HTTPServer struct {
@@ -39,6 +40,11 @@ type AuthGRPC struct {
 	Host    string `env:"AUTH_GRPC_HOST" envDefault:"localhost"`
 	Port    string `env:"AUTH_GRPC_PORT" envDefault:"50051"`
 	Address string
+}
+
+type TokenConfig struct {
+	AccessTokenSecretKey string `env:"ACCESS_TOKEN_SECRET"`
+	AuthPrefix           string `env:"AUTH_PREFIX" envDefault:"Bearer "`
 }
 
 func New() (*Config, error) {

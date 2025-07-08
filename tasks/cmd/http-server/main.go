@@ -8,11 +8,13 @@ import (
 	"github.com/Gustcat/task-server/internal/config"
 	"github.com/Gustcat/task-server/internal/logger"
 	"github.com/Gustcat/task-server/internal/middleware"
-	"github.com/Gustcat/task-server/internal/repository/postgres"
+	taskRepo "github.com/Gustcat/task-server/internal/repository/postgres/task"
+	"github.com/Gustcat/task-server/internal/repository/postgres/watcher"
 	taskService "github.com/Gustcat/task-server/internal/service/task"
 	"github.com/Gustcat/task-server/internal/validation"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log/slog"
@@ -51,16 +53,22 @@ func main() {
 
 	log.Debug("Try to connect to db", slog.String("DSN", conf.Postgres.DSN))
 
-	repo, err := postgres.NewRepo(ctx, conf.Postgres.DSN)
+	db, err := pgxpool.Connect(ctx, conf.Postgres.DSN)
 	if err != nil {
-		log.Error("doesn't create repo", slog.String("error", err.Error()))
-		os.Exit(1)
+		log.Error("failed to connect to db: %w", err)
 	}
-	defer repo.Close()
+	defer db.Close()
 
-	err = repo.Ping(ctx)
+	err = db.Ping(ctx)
 	if err != nil {
 		log.Error("doesn't ping db", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	watcherRepo := watcher.NewWatcherRepo(db)
+	repo, err := taskRepo.NewRepo(db, watcherRepo)
+	if err != nil {
+		log.Error("doesn't create repo", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
@@ -85,6 +93,7 @@ func main() {
 
 	router.Use(gin.Recovery())
 	router.Use(middleware.LoggerMiddleware(log))
+	router.Use(middleware.AuthMiddleware(conf))
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		err := v.RegisterValidation("not_before_now", validation.NotBeforeNowValidator)

@@ -57,6 +57,13 @@ func RepoToTask(task *modelRepo.TaskDB) *model.Task {
 	}
 }
 
+func RepoToFullTask(task *modelRepo.FullTaskDB) *model.FullTask {
+	return &model.FullTask{
+		Watchers: task.Watchers,
+		Task:     *RepoToTask(&task.TaskDB),
+	}
+}
+
 func SQLToPointer[T any](sqlField sql.Null[T]) *T {
 	if sqlField.Valid {
 		return &sqlField.V

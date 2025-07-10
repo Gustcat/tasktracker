@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Gustcat/task-server/internal/repository"
 	modelrepo "github.com/Gustcat/task-server/internal/repository/model"
+	"github.com/Gustcat/task-server/internal/repository/postgres/watcher"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgconn"
@@ -41,7 +42,7 @@ func NewRepo(db *pgxpool.Pool, watcherRepo repository.WatcherRepository) (*Repo,
 	}, nil
 }
 
-func (r *Repo) Create(ctx context.Context, task *modelrepo.TaskCreateDB, watcherSelf bool) (int64, error) {
+func (r *Repo) Create(ctx context.Context, task *modelrepo.TaskCreateDB, watcher *string) (int64, error) {
 	const op = "postgres.task.Create"
 
 	//TODO: транзакция
@@ -78,8 +79,8 @@ func (r *Repo) Create(ctx context.Context, task *modelrepo.TaskCreateDB, watcher
 		return 0, fmt.Errorf("%s: executing query failed: %w", op, err)
 	}
 
-	if watcherSelf {
-		err = r.watcherRepo.Add(ctx, id, task.Author)
+	if watcher != nil {
+		err = r.watcherRepo.Add(ctx, id, *watcher)
 		if err != nil {
 			return 0, err
 		}
@@ -109,6 +110,62 @@ func (r *Repo) Get(ctx context.Context, id int64) (*modelrepo.TaskDB, error) {
 	defer rows.Close()
 
 	var task modelrepo.TaskDB
+	err = pgxscan.ScanOne(&task, rows)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, repository.ErrTaskNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("%s: executing query failed: %w", op, err)
+	}
+
+	return &task, nil
+}
+
+func (r *Repo) GetWithWatchers(ctx context.Context, id int64) (*modelrepo.FullTaskDB, error) {
+	const op = "postgres.task.GetWithWatchers"
+
+	builder := sq.Select(
+		"t."+idColumn,
+		"t."+titleColumn,
+		"t."+descriptionColumn,
+		"t."+statusColumn,
+		"t."+authorColumn,
+		"t."+operatorColumn,
+		"t."+dueDateColumn,
+		"t."+completedAtColumn,
+		"t."+createdAtColumn,
+		"t."+updatedAtColumn,
+		"COALESCE(ARRAY_REMOVE(ARRAY_AGG(w.watcher), NULL), '{}') AS watchers",
+	).
+		From(tableName+" t").
+		LeftJoin(watcher.TableName+" w ON w."+watcher.TaskIDColumn+" = t."+idColumn).
+		Where(sq.Eq{"t." + idColumn: id}).
+		GroupBy(
+			"t."+idColumn,
+			"t."+titleColumn,
+			"t."+descriptionColumn,
+			"t."+statusColumn,
+			"t."+authorColumn,
+			"t."+operatorColumn,
+			"t."+dueDateColumn,
+			"t."+completedAtColumn,
+			"t."+createdAtColumn,
+			"t."+updatedAtColumn,
+		).
+		PlaceholderFormat(sq.Dollar)
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%s: building SQL failed: %w", op, err)
+	}
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("%s: query failed: %w", op, err)
+	}
+	defer rows.Close()
+
+	var task modelrepo.FullTaskDB
 	err = pgxscan.ScanOne(&task, rows)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrTaskNotFound

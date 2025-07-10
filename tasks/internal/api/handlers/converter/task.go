@@ -23,6 +23,7 @@ func UpdateDTOToTaskUpdate(updateTask *dto.UpdateTaskRequest) *model.TaskUpdate 
 		Description: updateTask.Description,
 		Status:      updateTask.Status,
 		Operator:    updateTask.Operator,
+		WatcherSelf: updateTask.WatchSelf,
 		DueDate:     (*time.Time)(updateTask.DueDate),
 	}
 }
@@ -39,5 +40,12 @@ func TaskToDTO(task *model.Task) *dto.TaskResponse {
 		CompletedAt: task.CompletedAt,
 		Author:      task.Author,
 		ID:          task.ID,
+	}
+}
+
+func FullTaskToDTO(task *model.FullTask) *dto.FullTaskResponse {
+	return &dto.FullTaskResponse{
+		TaskResponse: *TaskToDTO(&task.Task),
+		Watchers:     task.Watchers,
 	}
 }

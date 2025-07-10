@@ -6,11 +6,11 @@ import (
 	"github.com/Gustcat/task-server/internal/model"
 )
 
-func (s *Serv) Get(ctx context.Context, id int64) (*model.Task, error) {
-	taskRepo, err := s.taskRepo.Get(ctx, id)
+func (s *Serv) Get(ctx context.Context, id int64) (*model.FullTask, error) {
+	taskRepo, err := s.taskRepo.GetWithWatchers(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	return converter.RepoToTask(taskRepo), nil
+	return converter.RepoToFullTask(taskRepo), nil
 }

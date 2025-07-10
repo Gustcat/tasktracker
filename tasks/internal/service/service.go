@@ -12,7 +12,7 @@ var (
 
 type TaskService interface {
 	Create(ctx context.Context, task *model.TaskCreate) (int64, error)
-	Get(ctx context.Context, id int64) (*model.Task, error)
+	Get(ctx context.Context, id int64) (*model.FullTask, error)
 	Delete(ctx context.Context, id int64) error
 	Update(ctx context.Context, id int64, task *model.TaskUpdate) (*model.Task, error)
 	List(ctx context.Context) ([]*model.Task, error)

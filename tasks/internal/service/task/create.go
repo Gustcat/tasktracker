@@ -12,13 +12,15 @@ import (
 )
 
 func (s *Serv) Create(ctx context.Context, task *model.TaskCreate) (int64, error) {
-	author := ctxutils.UserFromContext(ctx)
-	if author == nil {
-		return 0, fmt.Errorf("%w: author", ErrUserNotFound) //TODO: обработать такую ошибку слоем выше
+	const op = "service.task.Create"
+
+	currentUser, err := ctxutils.UserFromContext(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("%w: %s", err, op)
 	}
 
-	if author.Role == model.USER {
-		if task.Operator != nil && author.ID != *task.Operator {
+	if currentUser.Role == model.USER {
+		if task.Operator != nil && currentUser.ID != *task.Operator {
 			return 0, fmt.Errorf("%w to assign anyone other than himself", service.ErrUserNotAllowed)
 		}
 		if task.Status != nil && *task.Status == model.StatusDone {
@@ -48,10 +50,15 @@ func (s *Serv) Create(ctx context.Context, task *model.TaskCreate) (int64, error
 		}
 	}
 
-	task.Author = author.ID
+	task.Author = currentUser.ID
 	insertTask := converter.TaskToRepo(task)
 
-	id, err := s.taskRepo.Create(ctx, insertTask, task.WatchSelf)
+	var watcher *string
+	if task.WatchSelf {
+		watcher = &currentUser.Name
+	}
+
+	id, err := s.taskRepo.Create(ctx, insertTask, watcher)
 	if err != nil {
 		return 0, err
 	}

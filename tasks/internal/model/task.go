@@ -27,6 +27,11 @@ type Task struct {
 	UpdatedAt   *time.Time
 }
 
+type FullTask struct {
+	Task
+	Watchers []string
+}
+
 type TaskCreate struct {
 	Author      int64
 	Title       string
@@ -39,10 +44,12 @@ type TaskCreate struct {
 }
 
 type TaskUpdate struct {
+	Author      int64
 	Title       *string
 	Description *string
 	Status      *Status
 	Operator    *int64
+	WatcherSelf *bool
 	DueDate     *time.Time
 	CompletedAt *time.Time
 	UpdatedAt   time.Time

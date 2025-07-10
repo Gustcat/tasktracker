@@ -41,5 +41,5 @@ func (h *Handler) Get(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, response.OK(converter.TaskToDTO(task)))
+	c.JSON(http.StatusOK, response.OK(converter.FullTaskToDTO(task)))
 }

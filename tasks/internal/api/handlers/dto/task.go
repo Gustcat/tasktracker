@@ -59,6 +59,11 @@ type TaskResponse struct {
 	UpdatedAt   *time.Time   `json:"updated_at" time_format:"2006-01-02 15:04:05"`
 }
 
+type FullTaskResponse struct {
+	TaskResponse
+	Watchers []string `json:"watchers"`
+}
+
 type IdUri struct {
 	ID int64 `uri:"id" binding:"required"`
 }
@@ -68,5 +73,6 @@ type UpdateTaskRequest struct {
 	Description *string       `json:"description"`
 	Status      *model.Status `json:"status" binding:"omitempty,oneof=new in_progress done todo"`
 	Operator    *int64        `json:"operator" binding:"omitempty,gte=0"`
+	WatchSelf   *bool         `json:"watch_self"`
 	DueDate     *Date         `json:"due_date" time_format:"2006-01-02 15:04:05"`
 }

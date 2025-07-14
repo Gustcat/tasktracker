@@ -54,7 +54,3 @@ type DB interface {
 	Pinger
 	Close()
 }
-
-type Result interface {
-	RowsAffected() (int64, error)
-}

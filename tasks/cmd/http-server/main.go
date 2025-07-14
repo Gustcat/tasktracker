@@ -6,6 +6,7 @@ import (
 	taskHandler "github.com/Gustcat/task-server/internal/api/handlers/task"
 	"github.com/Gustcat/task-server/internal/client/authgrpc/user"
 	"github.com/Gustcat/task-server/internal/client/db/pg"
+	"github.com/Gustcat/task-server/internal/client/db/transaction"
 	"github.com/Gustcat/task-server/internal/config"
 	"github.com/Gustcat/task-server/internal/logger"
 	"github.com/Gustcat/task-server/internal/middleware"
@@ -71,6 +72,7 @@ func main() {
 		log.Error("doesn't create taskRepo", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+	txManager := transaction.NewTransactionManager(pgClient.DB())
 
 	conn, err := grpc.NewClient(conf.AuthGRPC.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -85,7 +87,7 @@ func main() {
 
 	authClient := user.NewClient(descUser.NewUserV1Client(conn))
 
-	service := taskService.NewService(taskRepo, watcherRepo, authClient)
+	service := taskService.NewService(taskRepo, watcherRepo, authClient, txManager)
 	handler := taskHandler.NewHandler(service)
 
 	log.Debug("Try to setup router")

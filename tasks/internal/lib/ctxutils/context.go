@@ -11,6 +11,7 @@ type ctxKey string
 const (
 	LoggerKey ctxKey = "logger"
 	UserKey   ctxKey = "user"
+	TxKey     ctxKey = "tx"
 )
 
 var (
@@ -22,5 +23,6 @@ func UserFromContext(ctx context.Context) (*model.User, error) {
 	if !ok {
 		return nil, ErrCurrentUserNotFound
 	}
+
 	return user, nil
 }

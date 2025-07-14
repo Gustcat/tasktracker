@@ -53,16 +53,26 @@ func (s *Serv) Create(ctx context.Context, task *model.TaskCreate) (int64, error
 	task.Author = currentUser.ID
 	insertTask := converter.TaskToRepo(task)
 
-	id, err := s.taskRepo.Create(ctx, insertTask)
+	var id int64
+	err = s.txManager.ReadCommitted(ctx, func(ctx context.Context) error {
+		var errTx error
+		id, errTx = s.taskRepo.Create(ctx, insertTask)
+		if errTx != nil {
+			return errTx
+		}
+
+		if task.WatchSelf {
+			errTx = s.watcherRepo.Add(ctx, id, currentUser.Name)
+			if errTx != nil {
+				return errTx
+			}
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return 0, err
-	}
-
-	if task.WatchSelf {
-		err = s.watcherRepo.Add(ctx, id, currentUser.Name)
-		if err != nil {
-			return 0, err
-		}
 	}
 
 	return id, nil

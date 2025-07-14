@@ -12,7 +12,7 @@ var (
 )
 
 type TaskRepository interface {
-	Create(ctx context.Context, task *modelrepo.TaskCreateDB, watcher *string) (int64, error)
+	Create(ctx context.Context, task *modelrepo.TaskCreateDB) (int64, error)
 	Get(ctx context.Context, id int64) (*modelrepo.TaskDB, error)
 	GetWithWatchers(ctx context.Context, id int64) (*modelrepo.FullTaskDB, error)
 	List(ctx context.Context) ([]*modelrepo.TaskDB, error)

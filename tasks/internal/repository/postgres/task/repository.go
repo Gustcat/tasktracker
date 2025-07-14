@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Gustcat/task-server/internal/client/db"
 	"github.com/Gustcat/task-server/internal/repository"
 	modelrepo "github.com/Gustcat/task-server/internal/repository/model"
 	"github.com/Gustcat/task-server/internal/repository/postgres/watcher"
@@ -11,7 +12,6 @@ import (
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"strings"
 )
 
@@ -31,18 +31,16 @@ const (
 )
 
 type Repo struct {
-	db          *pgxpool.Pool
-	watcherRepo repository.WatcherRepository
+	db db.Client
 }
 
-func NewRepo(db *pgxpool.Pool, watcherRepo repository.WatcherRepository) (*Repo, error) {
+func NewRepo(db db.Client) (*Repo, error) {
 	return &Repo{
-		db:          db,
-		watcherRepo: watcherRepo,
+		db: db,
 	}, nil
 }
 
-func (r *Repo) Create(ctx context.Context, task *modelrepo.TaskCreateDB, watcher *string) (int64, error) {
+func (r *Repo) Create(ctx context.Context, task *modelrepo.TaskCreateDB) (int64, error) {
 	const op = "postgres.task.Create"
 
 	//TODO: транзакция
@@ -69,21 +67,19 @@ func (r *Repo) Create(ctx context.Context, task *modelrepo.TaskCreateDB, watcher
 		return 0, fmt.Errorf("%s: building SQL failed: %w", op, err)
 	}
 
+	q := db.Query{
+		Name:     op,
+		QueryRaw: query,
+	}
+
 	var id int64
-	err = r.db.QueryRow(ctx, query, args...).Scan(&id)
+	err = r.db.DB().QueryRowContext(ctx, q, args...).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return 0, repository.ErrTaskExists
 		}
 		return 0, fmt.Errorf("%s: executing query failed: %w", op, err)
-	}
-
-	if watcher != nil {
-		err = r.watcherRepo.Add(ctx, id, *watcher)
-		if err != nil {
-			return 0, err
-		}
 	}
 
 	return id, nil
@@ -103,14 +99,13 @@ func (r *Repo) Get(ctx context.Context, id int64) (*modelrepo.TaskDB, error) {
 		return nil, fmt.Errorf("%s: building SQL failed: %w", op, err)
 	}
 
-	rows, err := r.db.Query(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("%s: query failed: %w", op, err)
+	q := db.Query{
+		Name:     op,
+		QueryRaw: query,
 	}
-	defer rows.Close()
 
 	var task modelrepo.TaskDB
-	err = pgxscan.ScanOne(&task, rows)
+	err = r.db.DB().ScanOneContext(ctx, &task, q, args...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrTaskNotFound
 	}
@@ -159,14 +154,13 @@ func (r *Repo) GetWithWatchers(ctx context.Context, id int64) (*modelrepo.FullTa
 		return nil, fmt.Errorf("%s: building SQL failed: %w", op, err)
 	}
 
-	rows, err := r.db.Query(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("%s: query failed: %w", op, err)
+	q := db.Query{
+		Name:     op,
+		QueryRaw: query,
 	}
-	defer rows.Close()
 
 	var task modelrepo.FullTaskDB
-	err = pgxscan.ScanOne(&task, rows)
+	err = r.db.DB().ScanOneContext(ctx, &task, q, args...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrTaskNotFound
 	}
@@ -190,11 +184,15 @@ func (r *Repo) List(ctx context.Context) ([]*modelrepo.TaskDB, error) {
 		return nil, fmt.Errorf("%s: building SQL failed: %w", op, err)
 	}
 
+	q := db.Query{
+		Name:     op,
+		QueryRaw: query,
+	}
 	// TODO: пагинация и фильтрация
 
 	tasks := make([]*modelrepo.TaskDB, 0)
 
-	err = pgxscan.Select(ctx, r.db, &tasks, query, args...)
+	err = r.db.DB().ScanAllContext(ctx, &tasks, q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("%s: query failed: %w", op, err)
 	}
@@ -242,7 +240,12 @@ func (r *Repo) Update(ctx context.Context, id int64, task *modelrepo.TaskUpdateD
 		return nil, fmt.Errorf("%s: building SQL failed: %w", op, err)
 	}
 
-	rows, err := r.db.Query(ctx, query, args...)
+	q := db.Query{
+		Name:     op,
+		QueryRaw: query,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("%s: query failed: %w", op, err)
 	}
@@ -273,7 +276,12 @@ func (r *Repo) Delete(ctx context.Context, id int64) error {
 		return fmt.Errorf("%s: building SQL failed: %w", op, err)
 	}
 
-	res, err := r.db.Exec(ctx, query, args...)
+	q := db.Query{
+		Name:     op,
+		QueryRaw: query,
+	}
+
+	res, err := r.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
 		return fmt.Errorf("%s: executing query failed: %w", op, err)
 	}

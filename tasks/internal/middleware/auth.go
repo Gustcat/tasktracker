@@ -3,12 +3,12 @@ package middleware
 import (
 	"context"
 	"errors"
+	"github.com/Gustcat/shared-lib/jwt_auth"
 	"github.com/Gustcat/task-server/internal/config"
 	"github.com/Gustcat/task-server/internal/lib/ctxutils"
 	"github.com/Gustcat/task-server/internal/lib/response"
 	"github.com/Gustcat/task-server/internal/logger"
 	"github.com/Gustcat/task-server/internal/model"
-	"github.com/Gustcat/tasktracker/libs/jwt_auth"
 	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
@@ -42,6 +42,7 @@ func AuthMiddleware(conf *config.Config) gin.HandlerFunc {
 				slog.String("accessToken", accessToken),
 				slog.String("err", err.Error()))
 			c.AbortWithStatusJSON(http.StatusUnauthorized, response.Error(ErrInvalidToken.Error()))
+			return
 		}
 
 		user := &model.User{

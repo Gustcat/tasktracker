@@ -44,9 +44,9 @@ func (h *Handler) Create(c *gin.Context) {
 	task := converter.DTOToTask(&requestTask)
 	id, err := h.service.Create(ctx, task)
 	if errors.Is(err, repository.ErrTaskExists) {
+		err = fmt.Errorf("%w, with title %s", err, task.Title)
 		log.Error("", slog.String("error", err.Error()), slog.String("title", task.Title))
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.Error(fmt.Sprintf(
-			"%w, with title %s", err, task.Title)))
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Error(err.Error()))
 		return
 	}
 	if errors.Is(err, ctxutils.ErrCurrentUserNotFound) {
@@ -56,6 +56,7 @@ func (h *Handler) Create(c *gin.Context) {
 	}
 	if errors.Is(err, taskServ.ErrUserNotFound) {
 		log.Error("", slog.String("error", err.Error()), slog.Int64("operator", *task.Operator))
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Error("Operator not found"))
 	}
 	if errors.Is(err, service.ErrUserNotAllowed) {
 		log.Error("User is not allowed to create task", slog.String("error", err.Error()))

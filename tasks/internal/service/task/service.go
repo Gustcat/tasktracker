@@ -6,13 +6,17 @@ import (
 )
 
 type Serv struct {
-	taskRepo   repository.TaskRepository
-	authClient service.AuthService
+	taskRepo    repository.TaskRepository
+	watcherRepo repository.WatcherRepository
+	authClient  service.AuthService
 }
 
-func NewService(taskRepo repository.TaskRepository, authClient service.AuthService) service.TaskService {
+func NewService(taskRepo repository.TaskRepository,
+	watcherRepo repository.WatcherRepository,
+	authClient service.AuthService) service.TaskService {
 	return &Serv{
-		taskRepo:   taskRepo,
-		authClient: authClient,
+		taskRepo:    taskRepo,
+		watcherRepo: watcherRepo,
+		authClient:  authClient,
 	}
 }

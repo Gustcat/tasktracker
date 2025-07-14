@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Gustcat/task-server/internal/client/db"
 	"github.com/Gustcat/task-server/internal/logger"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgconn"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"log/slog"
 )
 
@@ -19,10 +19,10 @@ const (
 )
 
 type Repo struct {
-	db *pgxpool.Pool
+	db db.Client
 }
 
-func NewWatcherRepo(db *pgxpool.Pool) *Repo {
+func NewWatcherRepo(db db.Client) *Repo {
 	return &Repo{
 		db: db,
 	}
@@ -41,7 +41,12 @@ func (r *Repo) Add(ctx context.Context, taskID int64, username string) error {
 		return fmt.Errorf("%s: building SQL failed: %w", op, err)
 	}
 
-	_, err = r.db.Exec(ctx, query, args...)
+	q := db.Query{
+		Name:     op,
+		QueryRaw: query,
+	}
+
+	_, err = r.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -70,7 +75,12 @@ func (r *Repo) Remove(ctx context.Context, taskID int64, username string) error 
 		return fmt.Errorf("%s: building SQL failed: %w", op, err)
 	}
 
-	_, err = r.db.Exec(ctx, query, args...)
+	q := db.Query{
+		Name:     op,
+		QueryRaw: query,
+	}
+
+	_, err = r.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {

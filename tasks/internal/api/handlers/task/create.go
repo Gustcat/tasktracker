@@ -69,7 +69,7 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	log.Info("Person created", slog.Int64("id", id))
+	log.Info("Task created", slog.Int64("id", id))
 
 	createResp := &dto.IdResponse{ID: id}
 	c.JSON(http.StatusCreated, response.OK(createResp))

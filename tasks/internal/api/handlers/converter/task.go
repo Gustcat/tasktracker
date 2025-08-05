@@ -23,7 +23,7 @@ func UpdateDTOToTaskUpdate(updateTask *dto.UpdateTaskRequest) *model.TaskUpdate 
 		Description: updateTask.Description,
 		Status:      updateTask.Status,
 		Operator:    updateTask.Operator,
-		WatcherSelf: updateTask.WatchSelf,
+		WatchSelf:   updateTask.WatchSelf,
 		DueDate:     (*time.Time)(updateTask.DueDate),
 	}
 }

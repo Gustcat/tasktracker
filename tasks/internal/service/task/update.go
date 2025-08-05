@@ -5,16 +5,31 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Gustcat/task-server/internal/converter"
+	"github.com/Gustcat/task-server/internal/lib/ctxutils"
 	"github.com/Gustcat/task-server/internal/model"
+	modelRepo "github.com/Gustcat/task-server/internal/repository/model"
+	"github.com/Gustcat/task-server/internal/service"
 	"time"
 )
 
 func (s *Serv) Update(ctx context.Context, id int64, task *model.TaskUpdate) (*model.Task, error) {
 	const op = "service.task.Update"
 
-	if isEmptyTaskUpdate(task) {
+	currentUser, err := ctxutils.UserFromContext(ctx)
+	if currentUser == nil {
+		return nil, fmt.Errorf("%w: %s", err, op)
+	}
+
+	if isEmptyTaskUpdate(task) && task.WatchSelf == nil {
 		emptyUpdateRequest := errors.New("empty update request")
 		return nil, fmt.Errorf("%s: %w", op, emptyUpdateRequest)
+	}
+
+	if currentUser.Role == model.USER {
+
+		if task.Operator != nil && currentUser.ID != *task.Operator {
+			return nil, fmt.Errorf("%w to assign anyone other than himself", service.ErrUserNotAllowed)
+		}
 	}
 
 	task.UpdatedAt = time.Now()
@@ -27,7 +42,35 @@ func (s *Serv) Update(ctx context.Context, id int64, task *model.TaskUpdate) (*m
 		}
 	}
 
-	taskRepo, err := s.taskRepo.Update(ctx, id, converter.TaskUpdateToRepo(task))
+	var taskRepo *modelRepo.TaskDB
+	err = s.txManager.ReadCommitted(ctx, func(ctx context.Context) error {
+		var errTx error
+		if !isEmptyTaskUpdate(task) {
+			taskRepo, errTx = s.taskRepo.Update(ctx, id, converter.TaskUpdateToRepo(task))
+			if errTx != nil {
+				return errTx
+			}
+		}
+
+		if task.WatchSelf != nil {
+			if *task.WatchSelf {
+				errTx = s.watcherRepo.Add(ctx, id, currentUser.Name)
+				if errTx != nil {
+					fmt.Printf("\n not nil %w", errTx)
+					return errTx
+				}
+				fmt.Println("\n nil")
+				return nil
+			} else {
+				errTx = s.watcherRepo.Remove(ctx, id, currentUser.Name)
+				if errTx != nil {
+					return errTx
+				}
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}

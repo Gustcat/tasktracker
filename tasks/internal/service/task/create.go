@@ -21,10 +21,10 @@ func (s *Serv) Create(ctx context.Context, task *model.TaskCreate) (int64, error
 
 	if currentUser.Role == model.USER {
 		if task.Operator != nil && currentUser.ID != *task.Operator {
-			return 0, fmt.Errorf("%w to assign anyone other than himself", service.ErrUserNotAllowed)
+			return 0, fmt.Errorf("%w to assign anyone other than himself: %s", service.ErrUserNotAllowed, op)
 		}
 		if task.Status != nil && *task.Status == model.StatusDone {
-			return 0, fmt.Errorf("%w to create task with `%s` status", service.ErrUserNotAllowed, model.StatusDone)
+			return 0, fmt.Errorf("%w to create task with `%s` status: %s", service.ErrUserNotAllowed, model.StatusDone, op)
 		}
 	}
 

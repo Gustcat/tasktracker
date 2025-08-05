@@ -49,7 +49,7 @@ type TaskUpdate struct {
 	Description *string
 	Status      *Status
 	Operator    *int64
-	WatcherSelf *bool
+	WatchSelf   *bool
 	DueDate     *time.Time
 	CompletedAt *time.Time
 	UpdatedAt   time.Time

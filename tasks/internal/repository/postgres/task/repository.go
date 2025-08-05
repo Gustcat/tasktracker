@@ -34,10 +34,10 @@ type Repo struct {
 	db db.Client
 }
 
-func NewRepo(db db.Client) (*Repo, error) {
+func NewRepo(db db.Client) repository.TaskRepository {
 	return &Repo{
 		db: db,
-	}, nil
+	}
 }
 
 func (r *Repo) Create(ctx context.Context, task *modelrepo.TaskCreateDB) (int64, error) {

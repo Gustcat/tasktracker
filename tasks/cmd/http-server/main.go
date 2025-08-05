@@ -67,11 +67,8 @@ func main() {
 	}
 
 	watcherRepo := watcher.NewWatcherRepo(pgClient)
-	taskRepo, err := taskRepository.NewRepo(pgClient)
-	if err != nil {
-		log.Error("doesn't create taskRepo", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
+	taskRepo := taskRepository.NewRepo(pgClient)
+
 	txManager := transaction.NewTransactionManager(pgClient.DB())
 
 	conn, err := grpc.NewClient(conf.AuthGRPC.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))

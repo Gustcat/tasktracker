@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/Gustcat/task-server/internal/api/handlers/converter"
 	"github.com/Gustcat/task-server/internal/api/handlers/dto"
+	"github.com/Gustcat/task-server/internal/lib/ctxutils"
 	"github.com/Gustcat/task-server/internal/lib/response"
 	"github.com/Gustcat/task-server/internal/logger"
 	"github.com/Gustcat/task-server/internal/repository"
+	"github.com/Gustcat/task-server/internal/service"
 	"github.com/Gustcat/task-server/internal/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -52,7 +54,16 @@ func (h *Handler) Update(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusNotFound, response.Error(fmt.Sprintf("%v, id - %d", err, idUri.ID)))
 		return
 	}
-
+	if errors.Is(err, service.ErrUserNotAllowed) {
+		log.Error("User is not allowed to update task", slog.String("error", err.Error()))
+		c.AbortWithStatusJSON(http.StatusForbidden, response.Error(err.Error()))
+		return
+	}
+	if errors.Is(err, ctxutils.ErrCurrentUserNotFound) {
+		log.Error("", slog.String("error", err.Error()))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Error("Failed to create task"))
+		return
+	}
 	if err != nil {
 		log.Error("Failed to update task", slog.String("error", err.Error()))
 		c.AbortWithStatusJSON(http.StatusInternalServerError, response.Error("Failed to update task"))

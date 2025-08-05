@@ -23,8 +23,8 @@ func (h *Handler) Get(c *gin.Context) {
 
 	err := c.ShouldBindUri(&idUri)
 	if err != nil {
-		log.Error("Invalid id parameter", slog.Int64("id", idUri.ID))
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.Error("invalid id url-parameter"))
+		log.Error("invalid url-parameter: id")
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.Error("invalid url-parameter: id"))
 		return
 	}
 

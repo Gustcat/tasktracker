@@ -49,10 +49,9 @@ func (r *Repo) Add(ctx context.Context, taskID int64, username string) error {
 	_, err = r.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return nil
+		if !(errors.As(err, &pgErr) && pgErr.Code == "23505") {
+			return fmt.Errorf("%s: executing query failed: %w", op, err)
 		}
-		return fmt.Errorf("%s: executing query failed: %w", op, err)
 	}
 
 	log := logger.LogFromContextAddOP(ctx, op)
@@ -68,7 +67,7 @@ func (r *Repo) Remove(ctx context.Context, taskID int64, username string) error 
 
 	builder := sq.Delete(TableName).
 		Where(sq.Eq{watcherColumn: username, TaskIDColumn: taskID}).
-		PlaceholderFormat(sq.Dollar).Suffix("RETURNING id")
+		PlaceholderFormat(sq.Dollar)
 
 	query, args, err := builder.ToSql()
 	if err != nil {
@@ -82,15 +81,11 @@ func (r *Repo) Remove(ctx context.Context, taskID int64, username string) error 
 
 	_, err = r.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return nil
-		}
 		return fmt.Errorf("%s: executing query failed: %w", op, err)
 	}
 
 	log := logger.LogFromContextAddOP(ctx, op)
-	log.Info("Create watcher for task",
+	log.Info("Remove watcher for task",
 		slog.Int64("task_id", taskID),
 		slog.String("username", username))
 

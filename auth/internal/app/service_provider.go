@@ -18,18 +18,21 @@ import (
 	accessService "github.com/Gustcat/auth/internal/service/access"
 	authService "github.com/Gustcat/auth/internal/service/auth"
 	userService "github.com/Gustcat/auth/internal/service/user"
+	"github.com/Gustcat/shared-lib/kafka_common"
 	"log"
 )
 
 type serviceProvider struct {
-	pgConfig      config.PGConfig
-	grpcConfig    config.GRPCConfig
-	httpConfig    config.HTTPConfig
-	swaggerConfig config.SwaggerConfig
-	tokenConfig   config.TokenConfig
+	pgConfig            config.PGConfig
+	grpcConfig          config.GRPCConfig
+	httpConfig          config.HTTPConfig
+	swaggerConfig       config.SwaggerConfig
+	tokenConfig         config.TokenConfig
+	kafkaProducerConfig config.KafkaProducerConfig
 
-	dbClient  db.Client
-	txManager db.TxManager
+	dbClient      db.Client
+	txManager     db.TxManager
+	kafkaProducer *kafka_common.Producer
 
 	userRepository   repository.UserRepository
 	accessRepository repository.AccessRepository
@@ -99,13 +102,26 @@ func (sp *serviceProvider) TokenConfig() config.TokenConfig {
 	if sp.tokenConfig == nil {
 		cfg, err := env.NewTokenConfig()
 		if err != nil {
-			log.Fatalf("failed to get swagger config: %s", err.Error())
+			log.Fatalf("failed to get token config: %s", err.Error())
 		}
 
 		sp.tokenConfig = cfg
 	}
 
 	return sp.tokenConfig
+}
+
+func (sp *serviceProvider) KafkaProducerConfig() config.KafkaProducerConfig {
+	if sp.kafkaProducerConfig == nil {
+		cfg, err := env.NewKafkaProducerConfig()
+		if err != nil {
+			log.Fatalf("failed to get kafka_common producer config: %s", err.Error())
+		}
+
+		sp.kafkaProducerConfig = cfg
+	}
+
+	return sp.kafkaProducerConfig
 }
 
 func (sp *serviceProvider) DBClient(ctx context.Context) db.Client {
@@ -151,9 +167,26 @@ func (sp *serviceProvider) AccessRepository(ctx context.Context) repository.Acce
 	return sp.accessRepository
 }
 
+func (sp *serviceProvider) KafkaProducer(ctx context.Context) *kafka_common.Producer {
+	if sp.kafkaProducer == nil {
+		brokers, err := sp.KafkaProducerConfig().Brokers()
+		if err != nil {
+			log.Fatalf("%s", err.Error())
+		}
+
+		cfg := kafka_common.ProducerConfig{
+			BrokerAddrs: brokers,
+		}
+
+		sp.kafkaProducer = kafka_common.NewProducer(cfg)
+	}
+
+	return sp.kafkaProducer
+}
+
 func (sp *serviceProvider) UserService(ctx context.Context) service.UserService {
 	if sp.userService == nil {
-		sp.userService = userService.NewServ(sp.UserRepository(ctx), sp.TxManager(ctx))
+		sp.userService = userService.NewServ(sp.UserRepository(ctx), sp.TxManager(ctx), sp.KafkaProducer(ctx))
 	}
 
 	return sp.userService

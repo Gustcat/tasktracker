@@ -37,3 +37,7 @@ type TokenConfig interface {
 	RefreshTokenExpiration() time.Duration
 	AuthPrefix() string
 }
+
+type KafkaProducerConfig interface {
+	Brokers() ([]string, error)
+}

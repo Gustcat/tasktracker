@@ -181,7 +181,7 @@ func (r *repo) Delete(ctx context.Context, id int64) error {
 	}
 
 	if ct.RowsAffected() == 0 {
-		return fmt.Errorf("запись с id %d не найдена", id)
+		return repository.ErrUserNotFound
 	}
 
 	return nil

@@ -6,7 +6,6 @@ import (
 	desc "github.com/Gustcat/auth/pkg/user_v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"log"
 )
 
 func (i *Implementation) Create(ctx context.Context, req *desc.CreateRequest) (*desc.CreateResponse, error) {
@@ -18,8 +17,6 @@ func (i *Implementation) Create(ctx context.Context, req *desc.CreateRequest) (*
 	if err != nil {
 		return nil, err
 	}
-
-	log.Printf("Created user with id %d", id)
 
 	return &desc.CreateResponse{
 		Id: id,

@@ -18,6 +18,7 @@ func (s *serv) Delete(ctx context.Context, id int64) error {
 		return fmt.Errorf("failed to get user for deleting: %w", err)
 	}
 
+	// TODO: транзакция для удаления и отправки сообщения в кафку
 	err = s.userRepository.Delete(ctx, id)
 	if err != nil {
 		return err
@@ -29,7 +30,7 @@ func (s *serv) Delete(ctx context.Context, id int64) error {
 		zap.Int32("role", user.Role))
 
 	deletionTime := time.Now()
-	event := kafka_common.UserDeletedPayload{Username: user.Name}
+	event := kafka_common.UserDeletedPayload{UserID: id}
 	dataEvent, err := json.Marshal(event)
 	if err != nil {
 		logger.Error("Failed to marshal event",

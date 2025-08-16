@@ -1,7 +1,7 @@
 -- +goose Up
 CREATE TABLE task_watchers (
     task_id INT NOT NULL REFERENCES task(id) ON DELETE CASCADE,
-    watcher varchar(50) not null,
+    watcher INT not null,
     PRIMARY KEY (task_id, watcher)
 );
 

@@ -17,9 +17,11 @@ type TaskCreateDB struct {
 }
 
 type TaskDB struct {
-	ID        int64               `db:"id"`
-	CreatedAt time.Time           `db:"created_at"`
-	UpdatedAt sql.Null[time.Time] `db:"updated_at"`
+	ID              int64               `db:"id"`
+	CreatedAt       time.Time           `db:"created_at"`
+	UpdatedAt       sql.Null[time.Time] `db:"updated_at"`
+	AuthorDeleted   bool                `db:"author_deleted"`
+	OperatorDeleted bool                `db:"operator_deleted"`
 	TaskCreateDB
 }
 

@@ -16,6 +16,9 @@ type TaskService interface {
 	Delete(ctx context.Context, id int64) error
 	Update(ctx context.Context, id int64, task *model.TaskUpdate) (*model.Task, error)
 	List(ctx context.Context) ([]*model.Task, error)
+	DeleteUserFromObservers(ctx context.Context, userID int64) error
+	DeleteUserFromAuthors(ctx context.Context, userID int64) error
+	DeleteUserFromOperators(ctx context.Context, userID int64) error
 }
 
 type AuthService interface {

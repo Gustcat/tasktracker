@@ -62,7 +62,7 @@ func (s *Serv) Create(ctx context.Context, task *model.TaskCreate) (int64, error
 		}
 
 		if task.WatchSelf {
-			errTx = s.watcherRepo.Add(ctx, id, currentUser.Name)
+			errTx = s.watcherRepo.Add(ctx, id, currentUser.ID)
 			if errTx != nil {
 				return errTx
 			}

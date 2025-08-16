@@ -44,16 +44,18 @@ func pointerToSQL[T any](pointer *T) sql.Null[T] {
 
 func RepoToTask(task *modelRepo.TaskDB) *model.Task {
 	return &model.Task{
-		ID:          task.ID,
-		Title:       task.Title,
-		Description: SQLToPointer(task.Description),
-		Status:      task.Status,
-		Author:      task.Author,
-		Operator:    SQLToPointer(task.Operator),
-		DueDate:     SQLToPointer(task.DueDate),
-		CompletedAt: SQLToPointer(task.CompletedAt),
-		CreatedAt:   task.CreatedAt,
-		UpdatedAt:   SQLToPointer(task.UpdatedAt),
+		ID:              task.ID,
+		Title:           task.Title,
+		Description:     SQLToPointer(task.Description),
+		Status:          task.Status,
+		Author:          task.Author,
+		Operator:        SQLToPointer(task.Operator),
+		DueDate:         SQLToPointer(task.DueDate),
+		CompletedAt:     SQLToPointer(task.CompletedAt),
+		CreatedAt:       task.CreatedAt,
+		UpdatedAt:       SQLToPointer(task.UpdatedAt),
+		AuthorDeleted:   task.AuthorDeleted,
+		OperatorDeleted: task.OperatorDeleted,
 	}
 }
 

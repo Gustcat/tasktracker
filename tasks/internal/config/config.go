@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"net"
+	"os"
 	"time"
 
 	"github.com/caarlos0/env/v10"
@@ -9,11 +11,12 @@ import (
 
 // Config общий конфиг
 type Config struct {
-	Env         string `env:"ENV" envDefault:"prod"`
-	Postgres    Postgres
-	HTTPServer  HTTPServer
-	AuthGRPC    AuthGRPC
-	TokenConfig TokenConfig
+	Env            string `env:"ENV" envDefault:"prod"`
+	Postgres       Postgres
+	HTTPServer     HTTPServer
+	AuthGRPC       AuthGRPC
+	TokenConfig    TokenConfig
+	ConsumerConfig ConsumerConfig
 }
 
 type HTTPServer struct {
@@ -47,6 +50,11 @@ type TokenConfig struct {
 	AuthPrefix           string `env:"AUTH_PREFIX" envDefault:"Bearer "`
 }
 
+type ConsumerConfig struct {
+	BrokerAddrs  []string
+	BrokersCount int `env:"KAFKA_BROKERS_COUNT" envDefault:"1"`
+}
+
 func New() (*Config, error) {
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {
@@ -55,16 +63,31 @@ func New() (*Config, error) {
 	buildHTTPAddress(&cfg.HTTPServer)
 	buildDSN(&cfg.Postgres)
 	buildGRPCAddress(&cfg.AuthGRPC)
+	addBrokers(&cfg.ConsumerConfig)
 
 	return cfg, nil
 }
 
+func addBrokers(consumer *ConsumerConfig) {
+	for i := 1; i <= consumer.BrokersCount; i++ {
+		host := os.Getenv(fmt.Sprintf("KAFKA_BROKER_%d_HOST", i))
+		port := os.Getenv(fmt.Sprintf("KAFKA_BROKER_%d_PORT", i))
+
+		if host == "" || port == "" {
+			continue
+		}
+
+		broker := net.JoinHostPort(host, port)
+		consumer.BrokerAddrs = append(consumer.BrokerAddrs, broker)
+	}
+}
+
 func buildHTTPAddress(httpserver *HTTPServer) {
-	httpserver.Address = fmt.Sprintf("%s:%s", httpserver.Host, httpserver.Port)
+	httpserver.Address = net.JoinHostPort(httpserver.Host, httpserver.Port)
 }
 
 func buildGRPCAddress(authGRPC *AuthGRPC) {
-	authGRPC.Address = fmt.Sprintf("%s:%s", authGRPC.Host, authGRPC.Port)
+	authGRPC.Address = net.JoinHostPort(authGRPC.Host, authGRPC.Port)
 }
 
 func buildDSN(p *Postgres) {

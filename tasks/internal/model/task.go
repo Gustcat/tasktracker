@@ -15,16 +15,18 @@ const (
 )
 
 type Task struct {
-	ID          int64
-	Author      int64
-	Title       string
-	Description *string
-	Status      Status
-	Operator    *int64
-	DueDate     *time.Time
-	CompletedAt *time.Time
-	CreatedAt   time.Time
-	UpdatedAt   *time.Time
+	ID              int64
+	Author          int64
+	Title           string
+	Description     *string
+	Status          Status
+	Operator        *int64
+	DueDate         *time.Time
+	CompletedAt     *time.Time
+	CreatedAt       time.Time
+	UpdatedAt       *time.Time
+	AuthorDeleted   bool
+	OperatorDeleted bool
 }
 
 type FullTask struct {

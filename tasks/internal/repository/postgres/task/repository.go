@@ -9,25 +9,25 @@ import (
 	modelrepo "github.com/Gustcat/task-server/internal/repository/model"
 	"github.com/Gustcat/task-server/internal/repository/postgres/watcher"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
-	"strings"
 )
 
 const (
 	tableName = "task"
 
-	idColumn          = "id"
-	titleColumn       = "title"
-	descriptionColumn = "description"
-	statusColumn      = "status"
-	authorColumn      = "author"
-	operatorColumn    = "operator"
-	dueDateColumn     = "due_date"
-	completedAtColumn = "completed_at"
-	createdAtColumn   = "created_at"
-	updatedAtColumn   = "updated_at"
+	idColumn              = "id"
+	titleColumn           = "title"
+	descriptionColumn     = "description"
+	statusColumn          = "status"
+	authorColumn          = "author"
+	operatorColumn        = "operator"
+	dueDateColumn         = "due_date"
+	completedAtColumn     = "completed_at"
+	createdAtColumn       = "created_at"
+	updatedAtColumn       = "updated_at"
+	authorDeletedColumn   = "author_deleted"
+	operatorDeletedColumn = "operator_deleted"
 )
 
 type Repo struct {
@@ -88,8 +88,9 @@ func (r *Repo) Create(ctx context.Context, task *modelrepo.TaskCreateDB) (int64,
 func (r *Repo) Get(ctx context.Context, id int64) (*modelrepo.TaskDB, error) {
 	const op = "postgres.task.Get"
 
-	builder := sq.Select(idColumn, titleColumn, descriptionColumn, statusColumn, authorColumn,
-		operatorColumn, dueDateColumn, completedAtColumn, createdAtColumn, updatedAtColumn).
+	builder := sq.Select(idColumn, titleColumn, descriptionColumn, statusColumn,
+		authorColumn, operatorColumn, dueDateColumn, completedAtColumn, createdAtColumn,
+		updatedAtColumn, authorDeletedColumn, operatorDeletedColumn).
 		From(tableName).
 		Where(sq.Eq{idColumn: id}).
 		PlaceholderFormat(sq.Dollar)
@@ -130,6 +131,8 @@ func (r *Repo) GetWithWatchers(ctx context.Context, id int64) (*modelrepo.FullTa
 		"t."+completedAtColumn,
 		"t."+createdAtColumn,
 		"t."+updatedAtColumn,
+		"t."+authorDeletedColumn,
+		"t."+operatorDeletedColumn,
 		"COALESCE(ARRAY_REMOVE(ARRAY_AGG(w.watcher), NULL), '{}') AS watchers",
 	).
 		From(tableName+" t").
@@ -146,6 +149,8 @@ func (r *Repo) GetWithWatchers(ctx context.Context, id int64) (*modelrepo.FullTa
 			"t."+completedAtColumn,
 			"t."+createdAtColumn,
 			"t."+updatedAtColumn,
+			"t."+authorDeletedColumn,
+			"t."+operatorDeletedColumn,
 		).
 		PlaceholderFormat(sq.Dollar)
 
@@ -174,8 +179,9 @@ func (r *Repo) GetWithWatchers(ctx context.Context, id int64) (*modelrepo.FullTa
 func (r *Repo) List(ctx context.Context) ([]*modelrepo.TaskDB, error) {
 	const op = "postgres.task.List"
 
-	builder := sq.Select(idColumn, titleColumn, descriptionColumn, statusColumn, authorColumn,
-		operatorColumn, dueDateColumn, completedAtColumn, createdAtColumn, updatedAtColumn).
+	builder := sq.Select(idColumn, titleColumn, descriptionColumn, statusColumn,
+		authorColumn, operatorColumn, dueDateColumn, completedAtColumn, createdAtColumn,
+		updatedAtColumn, authorDeletedColumn, operatorDeletedColumn).
 		From(tableName).
 		PlaceholderFormat(sq.Dollar)
 
@@ -202,9 +208,8 @@ func (r *Repo) List(ctx context.Context) ([]*modelrepo.TaskDB, error) {
 
 func (r *Repo) Update(ctx context.Context, id int64, task *modelrepo.TaskUpdateDB) (*modelrepo.TaskDB, error) {
 	const op = "postgres.task.Update"
-	alias := "p"
 
-	builder := sq.Update(fmt.Sprintf("%s AS %s", tableName, alias)).
+	builder := sq.Update(tableName).
 		PlaceholderFormat(sq.Dollar).
 		Where(sq.Eq{idColumn: id}).
 		Set(updatedAtColumn, task.UpdatedAt)
@@ -230,10 +235,10 @@ func (r *Repo) Update(ctx context.Context, id int64, task *modelrepo.TaskUpdateD
 		builder = builder.Set(dueDateColumn, task.DueDate)
 	}
 
-	fields := []string{idColumn, titleColumn, descriptionColumn, statusColumn, operatorColumn,
-		dueDateColumn, completedAtColumn, authorColumn, createdAtColumn, updatedAtColumn}
-	row := strings.Join(fields, ", ")
-	builder = builder.Suffix(fmt.Sprintf("RETURNING %s", row))
+	//fields := []string{idColumn, titleColumn, descriptionColumn, statusColumn, operatorColumn,
+	//	dueDateColumn, completedAtColumn, authorColumn, createdAtColumn, updatedAtColumn}
+	//row := strings.Join(fields, ", ")
+	//builder = builder.Suffix(fmt.Sprintf("RETURNING %s", row))
 
 	query, args, err := builder.ToSql()
 	if err != nil {
@@ -245,14 +250,14 @@ func (r *Repo) Update(ctx context.Context, id int64, task *modelrepo.TaskUpdateD
 		QueryRaw: query,
 	}
 
-	rows, err := r.db.DB().QueryContext(ctx, q, args...)
-	if err != nil {
-		return nil, fmt.Errorf("%s: query failed: %w", op, err)
-	}
-	defer rows.Close()
+	//rows, err := r.db.DB().QueryContext(ctx, q, args...)
+	//if err != nil {
+	//	return nil, fmt.Errorf("%s: query failed: %w", op, err)
+	//}
+	//defer rows.Close()
 
 	var updatedTask modelrepo.TaskDB
-	err = pgxscan.ScanOne(&updatedTask, rows)
+	err = r.db.DB().ScanOneContext(ctx, &updatedTask, q, args...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, repository.ErrTaskNotFound
 	}
@@ -292,4 +297,44 @@ func (r *Repo) Delete(ctx context.Context, id int64) error {
 	}
 
 	return nil
+}
+
+func (r *Repo) MarkAuthorDeleted(ctx context.Context, userID int64) ([]int64, error) {
+	const op = "postgres.task.MarkAuthorDeleted"
+
+	return r.markDeleted(ctx, userID, authorColumn, authorDeletedColumn, op)
+}
+
+func (r *Repo) MarkOperatorDeleted(ctx context.Context, userID int64) ([]int64, error) {
+	const op = "postgres.task.MarkAuthorDeleted"
+
+	return r.markDeleted(ctx, userID, operatorColumn, operatorDeletedColumn, op)
+}
+
+func (r *Repo) markDeleted(ctx context.Context, userID int64, searchColumn, changeColumn, method string) ([]int64, error) {
+
+	builder := sq.Update(tableName).
+		PlaceholderFormat(sq.Dollar).
+		Where(sq.Eq{searchColumn: userID}).
+		Set(changeColumn, true).
+		Suffix("RETURNING id")
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%s: building SQL failed: %w", method, err)
+	}
+
+	q := db.Query{
+		Name:     method,
+		QueryRaw: query,
+	}
+
+	taskIDs := make([]int64, 0)
+
+	err = r.db.DB().ScanAllContext(ctx, &taskIDs, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("%s: query failed: %w", method, err)
+	}
+
+	return taskIDs, nil
 }

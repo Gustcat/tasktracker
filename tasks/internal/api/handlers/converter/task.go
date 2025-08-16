@@ -30,16 +30,18 @@ func UpdateDTOToTaskUpdate(updateTask *dto.UpdateTaskRequest) *model.TaskUpdate 
 
 func TaskToDTO(task *model.Task) *dto.TaskResponse {
 	return &dto.TaskResponse{
-		Title:       task.Title,
-		Description: task.Description,
-		Status:      task.Status,
-		Operator:    task.Operator,
-		DueDate:     (*dto.Date)(task.DueDate),
-		CreatedAt:   task.CreatedAt,
-		UpdatedAt:   task.UpdatedAt,
-		CompletedAt: task.CompletedAt,
-		Author:      task.Author,
-		ID:          task.ID,
+		Title:           task.Title,
+		Description:     task.Description,
+		Status:          task.Status,
+		Operator:        task.Operator,
+		DueDate:         (*dto.Date)(task.DueDate),
+		CreatedAt:       task.CreatedAt,
+		UpdatedAt:       task.UpdatedAt,
+		CompletedAt:     task.CompletedAt,
+		Author:          task.Author,
+		ID:              task.ID,
+		AuthorDeleted:   task.AuthorDeleted,
+		OperatorDeleted: task.OperatorDeleted,
 	}
 }
 

@@ -18,9 +18,12 @@ type TaskRepository interface {
 	List(ctx context.Context) ([]*modelrepo.TaskDB, error)
 	Update(ctx context.Context, id int64, task *modelrepo.TaskUpdateDB) (*modelrepo.TaskDB, error)
 	Delete(ctx context.Context, id int64) error
+	MarkAuthorDeleted(ctx context.Context, userID int64) ([]int64, error)
+	MarkOperatorDeleted(ctx context.Context, userID int64) ([]int64, error)
 }
 
 type WatcherRepository interface {
-	Add(ctx context.Context, taskID int64, username string) error
-	Remove(ctx context.Context, taskID int64, username string) error
+	Add(ctx context.Context, taskID, userID int64) error
+	Remove(ctx context.Context, taskID, userID int64) error
+	DeleteUser(ctx context.Context, userID int64) error
 }

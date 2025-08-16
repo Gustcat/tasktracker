@@ -54,15 +54,13 @@ func (s *Serv) Update(ctx context.Context, id int64, task *model.TaskUpdate) (*m
 
 		if task.WatchSelf != nil {
 			if *task.WatchSelf {
-				errTx = s.watcherRepo.Add(ctx, id, currentUser.Name)
+				errTx = s.watcherRepo.Add(ctx, id, currentUser.ID)
 				if errTx != nil {
-					fmt.Printf("\n not nil %w", errTx)
 					return errTx
 				}
-				fmt.Println("\n nil")
 				return nil
 			} else {
-				errTx = s.watcherRepo.Remove(ctx, id, currentUser.Name)
+				errTx = s.watcherRepo.Remove(ctx, id, currentUser.ID)
 				if errTx != nil {
 					return errTx
 				}

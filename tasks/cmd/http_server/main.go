@@ -8,6 +8,7 @@ import (
 	"github.com/Gustcat/task-server/internal/client/db/pg"
 	"github.com/Gustcat/task-server/internal/client/db/transaction"
 	"github.com/Gustcat/task-server/internal/config"
+	"github.com/Gustcat/task-server/internal/kafka_consumer"
 	"github.com/Gustcat/task-server/internal/logger"
 	"github.com/Gustcat/task-server/internal/middleware"
 	taskRepository "github.com/Gustcat/task-server/internal/repository/postgres/task"
@@ -86,6 +87,9 @@ func main() {
 
 	service := taskService.NewService(taskRepo, watcherRepo, authClient, txManager)
 	handler := taskHandler.NewHandler(service)
+
+	consumer := kafka_consumer.NewConsumer(conf.ConsumerConfig, service)
+	go consumer.Run(ctx) // TODO: закончить работу
 
 	log.Debug("Try to setup router")
 	router := gin.New()

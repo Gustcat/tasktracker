@@ -47,16 +47,18 @@ type IdResponse struct {
 }
 
 type TaskResponse struct {
-	ID          int64        `json:"id"`
-	Author      int64        `json:"author"`
-	Title       string       `json:"title"`
-	Description *string      `json:"description"`
-	Status      model.Status `json:"status" binding:"oneof=new in_progress done todo"`
-	Operator    *int64       `json:"operator"`
-	DueDate     *Date        `json:"due_date" time_format:"2006-01-02" binding:"omitempty,not_before_now"`
-	CompletedAt *time.Time   `json:"completed_at" time_format:"2006-01-02 15:04:05"`
-	CreatedAt   time.Time    `json:"created_at" time_format:"2006-01-02 15:04:05"`
-	UpdatedAt   *time.Time   `json:"updated_at" time_format:"2006-01-02 15:04:05"`
+	ID              int64        `json:"id"`
+	Author          int64        `json:"author"`
+	Title           string       `json:"title"`
+	Description     *string      `json:"description"`
+	Status          model.Status `json:"status" binding:"oneof=new in_progress done todo"`
+	Operator        *int64       `json:"operator"`
+	DueDate         *Date        `json:"due_date" time_format:"2006-01-02" binding:"omitempty,not_before_now"`
+	CompletedAt     *time.Time   `json:"completed_at" time_format:"2006-01-02 15:04:05"`
+	CreatedAt       time.Time    `json:"created_at" time_format:"2006-01-02 15:04:05"`
+	UpdatedAt       *time.Time   `json:"updated_at" time_format:"2006-01-02 15:04:05"`
+	AuthorDeleted   bool         `json:"author_deleted"`
+	OperatorDeleted bool         `json:"operator_deleted"`
 }
 
 type FullTaskResponse struct {

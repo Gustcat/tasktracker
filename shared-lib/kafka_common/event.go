@@ -1,5 +1,5 @@
 package kafka_common
 
 type UserDeletedPayload struct {
-	Username string `json:"username"`
+	UserID int64 `json:"user_id"`
 }

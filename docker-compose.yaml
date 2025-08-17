@@ -69,6 +69,17 @@ services:
     environment:
       DB_HOST: tasks-pg
 
+  tasks-backend:
+    build:
+      context: ./tasks
+      dockerfile: Dockerfile
+    restart: on-failure
+    ports:
+      - "8081:8081"
+    env_file: ./tasks/.env
+    depends_on:
+      - tasks-pg
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.7.1
     environment:
@@ -87,8 +98,9 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_common:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
